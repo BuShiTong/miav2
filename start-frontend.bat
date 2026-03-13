@@ -1,0 +1,3 @@
+@echo off
+echo Starting Mia Frontend...
+cd /d %~dp0frontend && npx vite --host
