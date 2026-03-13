@@ -236,6 +236,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 msg_count = 0
                 user_transcript: list[str] = []
                 mia_transcript: list[str] = []
+                # Audio gate: mute audio to browser during tool execution
+                audio_gated = False
+                tool_response_sent = False
+                gated_chunks_dropped = 0
                 try:
                     slog.debug("Downstream: starting receive loop")
                     while True:
@@ -256,6 +260,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 slog.info("Tool call received: %d function(s): %s",
                                           len(fc_list),
                                           [fc.name for fc in fc_list])
+                                # Activate audio gate — drop audio until real response arrives
+                                audio_gated = True
+                                tool_response_sent = False
+                                gated_chunks_dropped = 0
+                                slog.debug("Audio gate ACTIVATED")
 
                                 async def _run_tool(fc):
                                     t0 = time.monotonic()
@@ -283,6 +292,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 await session.send_tool_response(
                                     function_responses=list(responses),
                                 )
+                                tool_response_sent = True
                                 slog.info("Tool responses sent (%d)", len(responses))
                                 continue
 
@@ -296,6 +306,17 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if sc and sc.model_turn and sc.model_turn.parts:
                                 for part in sc.model_turn.parts:
                                     if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("audio/"):
+                                        # Audio gate: drop pre-tool narration, pass post-tool response
+                                        if audio_gated:
+                                            if tool_response_sent:
+                                                # Tool result was sent — this is the real response, unmute
+                                                slog.debug("Audio gate DEACTIVATED (dropped %d chunks)", gated_chunks_dropped)
+                                                audio_gated = False
+                                            else:
+                                                # Still waiting for tool result — drop this audio
+                                                gated_chunks_dropped += 1
+                                                continue
+
                                         audio_b64 = base64.b64encode(part.inline_data.data).decode("ascii")
                                         await websocket.send_text(json.dumps({
                                             "content": {
@@ -315,8 +336,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
 
-                            # Turn complete — flush transcripts
+                            # Turn complete — flush transcripts and reset gate
                             if sc and sc.turn_complete:
+                                if audio_gated:
+                                    slog.debug("Audio gate reset on turn_complete (dropped %d chunks)", gated_chunks_dropped)
+                                    audio_gated = False
                                 if user_transcript:
                                     slog.info("User: %s", "".join(user_transcript))
                                     user_transcript.clear()
@@ -325,8 +349,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     mia_transcript.clear()
                                 slog.debug("Turn complete (msg #%d)", msg_count)
 
-                            # Interruption (barge-in) — flush transcripts
+                            # Interruption (barge-in) — flush transcripts and reset gate
                             if sc and sc.interrupted:
+                                if audio_gated:
+                                    slog.debug("Audio gate reset on interrupt (dropped %d chunks)", gated_chunks_dropped)
+                                    audio_gated = False
                                 if user_transcript:
                                     slog.info("User: %s", "".join(user_transcript))
                                     user_transcript.clear()
