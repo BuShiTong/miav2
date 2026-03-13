@@ -59,8 +59,12 @@ def _create_session_logger(session_id: str) -> logging.Logger:
 
 # ── SDK client ───────────────────────────────────────────────
 
-client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
-MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-native-audio-latest")
+client = genai.Client(
+    vertexai=True,
+    project=os.environ["GOOGLE_CLOUD_PROJECT"],
+    location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+)
+MODEL = os.getenv("GEMINI_MODEL", "gemini-live-2.5-flash-native-audio")
 
 SYSTEM_INSTRUCTION = """\
 You are Mia, a knowledgeable friend who happens to be a great cook.
