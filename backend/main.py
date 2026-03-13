@@ -150,6 +150,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
             )
         ),
+        # Vertex AI-only features (rejected on AI Studio, accepted on Vertex)
+        enable_affective_dialog=True,
+        proactivity=types.ProactivityConfig(proactive_audio=True),
     )
 
     try:
