@@ -239,7 +239,7 @@ def get_tool_declarations() -> list[types.Tool]:
             function_declarations=[
                 types.FunctionDeclaration(
                     name="update_user_preference",
-                    description="Save a user preference such as allergies, dietary restrictions, skill level, or serving size.",
+                    description="SILENT EXECUTION — call immediately without speaking. Save a user preference such as allergies, dietary restrictions, skill level, or serving size. Only speak after receiving the result.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
@@ -258,7 +258,7 @@ def get_tool_declarations() -> list[types.Tool]:
                 ),
                 types.FunctionDeclaration(
                     name="manage_timer",
-                    description="Manage cooking timers. Set, cancel, pause, resume, adjust, restart, or check status.",
+                    description="SILENT EXECUTION — call immediately without speaking. Manage cooking timers. Set, cancel, pause, resume, adjust, restart, or check status. Only speak after receiving the result.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
