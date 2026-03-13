@@ -269,7 +269,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         id=fc.id,
                                         name=fc.name,
                                         response=result,
-                                        scheduling=types.FunctionResponseScheduling.SILENT,
                                     )
 
                                 responses = await asyncio.gather(
@@ -279,8 +278,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 await session.send_tool_response(
                                     function_responses=list(responses),
                                 )
-                                slog.info("Tool responses sent (%d) with SILENT scheduling",
-                                          len(responses))
+                                slog.info("Tool responses sent (%d)", len(responses))
                                 continue
 
                             # ── Tool call cancellation ──

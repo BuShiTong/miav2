@@ -240,7 +240,6 @@ def get_tool_declarations() -> list[types.Tool]:
                 types.FunctionDeclaration(
                     name="update_user_preference",
                     description="Save a user preference such as allergies, dietary restrictions, skill level, or serving size.",
-                    behavior=types.Behavior.BLOCKING,
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
@@ -260,7 +259,6 @@ def get_tool_declarations() -> list[types.Tool]:
                 types.FunctionDeclaration(
                     name="manage_timer",
                     description="Manage cooking timers. Set, cancel, pause, resume, adjust, restart, or check status.",
-                    behavior=types.Behavior.BLOCKING,
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
@@ -292,7 +290,6 @@ def get_tool_declarations() -> list[types.Tool]:
                 types.FunctionDeclaration(
                     name="search_web",
                     description="Search the web for cooking information, food safety facts, recipes, or ingredient substitutions. Use when the user asks a factual question you're not 100% sure about.",
-                    behavior=types.Behavior.BLOCKING,
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
