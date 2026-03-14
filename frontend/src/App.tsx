@@ -337,29 +337,33 @@ function App() {
     setIsStarting(true);
 
     try {
-      // Validate access code against backend
-      const codeResult = await verifyAccessCode(accessCode);
+      // Run code verification, playback setup, and mic setup in parallel.
+      // This saves ~200-600ms vs the previous sequential approach.
+      const [codeResult, , micResult] = await Promise.all([
+        verifyAccessCode(accessCode),
+        startPlayback(),
+        startMic(),
+      ]);
+
+      // Check code verification result — bail before opening WebSocket
+      // so Vertex AI billing never starts for invalid codes.
       if (!codeResult.valid) {
         setCodeError(codeResult.error || 'Invalid access code');
-        setIsStarting(false);
-        isStartingRef.current = false;
+        stopMic();
+        stopPlayback();
         return;
       }
 
-      await startPlayback();
-      acquireWakeLock();
-      connect();
-
-      const micResult = await startMic();
+      // Check mic permission
       if (micResult === "denied") {
         setMicError("My AI ears need your mic permission \u2014 I can't eavesdrop without it!");
-        disconnect();
         stopPlayback();
-        releaseWakeLock();
-        setIsStarting(false);
-        isStartingRef.current = false;
         return;
       }
+
+      // All checks passed — now open WebSocket (triggers Vertex AI session)
+      acquireWakeLock();
+      connect();
 
       if (videoEnabled) {
         pendingCameraRef.current = true;
@@ -368,6 +372,7 @@ function App() {
       setIsActive(true);
     } catch (err) {
       log.error("Failed to start session", err);
+      stopMic();
       disconnect();
       stopPlayback();
       releaseWakeLock();
@@ -379,6 +384,7 @@ function App() {
     connect,
     disconnect,
     startMic,
+    stopMic,
     startPlayback,
     stopPlayback,
     acquireWakeLock,
