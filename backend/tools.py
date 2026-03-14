@@ -159,7 +159,7 @@ _LIST_KEYS = {"allergies", "dietary"}
 
 
 def update_user_preference(state: SessionToolState, key: str, value: str) -> dict:
-    """Save a user preference (allergies, dietary restrictions, skill level, serving size)."""
+    """Save a user preference (allergies, dietary restrictions, or serving size)."""
     value = value.strip()
 
     # Negation: "none", "no allergies", "clear", etc. → remove the preference
@@ -381,7 +381,7 @@ def get_tool_declarations() -> list[types.Tool]:
             function_declarations=[
                 types.FunctionDeclaration(
                     name="update_user_preference",
-                    description="Save a user preference such as allergies, dietary restrictions, skill level, or serving size.",
+                    description="Save a user preference such as allergies, dietary restrictions, or serving size.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
@@ -392,7 +392,7 @@ def get_tool_declarations() -> list[types.Tool]:
                             ),
                             "value": types.Schema(
                                 type="STRING",
-                                description="The preference value (e.g. 'nuts', 'vegetarian', 'beginner', '2')",
+                                description="The preference value (e.g. 'nuts', 'vegetarian', '2')",
                             ),
                         },
                         required=["key", "value"],

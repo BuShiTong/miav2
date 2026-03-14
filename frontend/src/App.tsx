@@ -12,6 +12,7 @@ import { playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/ui
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { SessionView } from "./components/SessionView";
 import { useDemoSession } from "./hooks/useDemoSession";
+import { VOICE_RING, BUTTON_LABEL, SR_ANNOUNCEMENT } from "./lib/sessionConstants";
 
 const log = createLogger("App");
 
@@ -234,36 +235,6 @@ function App() {
             : isProcessing
               ? "processing"
               : "listening";
-
-  const VOICE_RING: Record<ButtonState, string> = {
-    idle: "voice-ring voice-ring--idle",
-    connecting: "voice-ring voice-ring--connecting",
-    reconnecting: "voice-ring voice-ring--reconnecting",
-    listening: "voice-ring voice-ring--listening",
-    speaking: "voice-ring voice-ring--speaking",
-    searching: "voice-ring voice-ring--searching",
-    processing: "voice-ring voice-ring--processing",
-  };
-
-  const BUTTON_LABEL: Record<ButtonState, string> = {
-    idle: "Start",
-    connecting: "Connecting...",
-    reconnecting: "Reconnecting...",
-    listening: "Listening...",
-    speaking: "Speaking...",
-    searching: "Searching...",
-    processing: "Processing...",
-  };
-
-  const SR_ANNOUNCEMENT: Record<ButtonState, string> = {
-    idle: "",
-    connecting: "Connecting to AI",
-    reconnecting: "Reconnecting to AI",
-    listening: "AI is listening",
-    speaking: "AI is speaking",
-    searching: "Searching the web",
-    processing: "AI is processing",
-  };
 
   const voiceRingClass = VOICE_RING[buttonState];
   const buttonLabel = BUTTON_LABEL[buttonState];

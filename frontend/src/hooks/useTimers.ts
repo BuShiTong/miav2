@@ -286,7 +286,7 @@ export function useTimers({ onTimerExpired }: UseTimersOptions) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timers.length, hasActiveTimer]);
+  }, [hasActiveTimer]);
 
   // Detect newly expired timers after each render
   useEffect(() => {
