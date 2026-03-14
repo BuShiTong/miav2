@@ -23,6 +23,16 @@ TIMER_ACTION_KEYWORDS = {
     "adjust": ["add", "more time", "less time", "extend", "extra", "subtract"],
 }
 
+# Removal-intent keywords for preference negation validation
+REMOVAL_KEYWORDS = [
+    "remove", "clear", "delete", "reset", "forget",
+    "no", "none", "nothing", "don't", "not", "without",
+    "scratch", "never mind", "drop",
+]
+
+# Broad scope words (user wants to clear all preferences, not a specific key)
+BROAD_SCOPE_WORDS = ["all", "everything", "both", "every"]
+
 # Number words for serving_size validation
 NUMBER_WORDS = {
     "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
@@ -46,6 +56,23 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
         key = (args.get("key") or "").lower()
         if not value:
             return True, "no value to check"
+
+        # Negation values: model might say "clear" but user said "remove"
+        # Check (1) removal intent AND (2) key or broad scope mentioned
+        if value in _NEGATION_VALUES or value.startswith("no "):
+            has_removal_intent = any(
+                re.search(r'\b' + re.escape(kw) + r'\b', text)
+                for kw in REMOVAL_KEYWORDS
+            )
+            has_key_or_scope = (
+                re.search(r'\b' + re.escape(key) + r'\b', text)
+                or any(re.search(r'\b' + re.escape(w) + r'\b', text) for w in BROAD_SCOPE_WORDS)
+            )
+            if has_removal_intent and has_key_or_scope:
+                return True, f"removal intent + key/scope found for negation '{value}'"
+            if has_removal_intent:
+                return True, f"removal intent found for negation '{value}' (broad context)"
+            return False, f"no removal intent for negation value '{value}'"
 
         # For serving_size, also check number words
         if key == "serving_size":
