@@ -32,10 +32,13 @@ from tools import (
     validate_tool_call,
 )
 
-# ── Session resumption handles (per user, survives WebSocket reconnects) ──
-# Stored by user_id so reconnecting clients can resume with preserved context.
+# ── Per-user state that survives WebSocket reconnects ──
 # Connection lifetime is ~10 min; handles are valid ~24 hours on Vertex.
+# Resume handles: stored by user_id so reconnecting clients resume with preserved context.
 _resume_handles: dict[str, str] = {}
+# Saved preferences: keyed by user_id, persisted across Gemini crashes so allergies
+# aren't lost when the connection resets. Cleared on clean disconnect (user clicks Stop).
+_saved_preferences: dict[str, dict[str, str]] = {}
 
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
@@ -139,6 +142,21 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     # Check for a stored resumption handle from a previous connection
     resume_handle = _resume_handles.get(user_id)
     is_resuming = resume_handle is not None
+
+    # Restore preferences from a previous session (survives Gemini crashes)
+    # so allergies/dietary info aren't lost on reconnect
+    if is_resuming:
+        saved = _saved_preferences.get(user_id)
+        if saved:
+            try:
+                tool_state.preferences = dict(saved)
+                # Re-emit preference events so frontend chips appear
+                for key, value in tool_state.preferences.items():
+                    tool_state.emit({"type": "preference_updated", "key": key, "value": value})
+                slog.info("Restored %d preferences for user %s: %s",
+                          len(saved), user_id, saved)
+            except Exception:
+                slog.warning("Failed to restore preferences — starting fresh")
 
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"],
@@ -381,6 +399,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         )
                                         slog.info("Preference context injected: %s", pref_parts)
 
+                                    # Persist preferences so they survive Gemini crashes
+                                    if tool_state.preferences:
+                                        _saved_preferences[user_id] = dict(tool_state.preferences)
+                                    else:
+                                        _saved_preferences.pop(user_id, None)
+
                                 # Start or reset the buffer timer
                                 if tool_buffer_task and not tool_buffer_task.done():
                                     tool_buffer_task.cancel()
@@ -537,6 +561,17 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
             slog.info("First task finished: %s", finished_names)
             for task in pending:
                 task.cancel()
+
+            # Crash vs clean disconnect detection:
+            # upstream finished first → user disconnected (clean Stop) → clear saved state
+            # downstream finished first → Gemini died (crash) → preserve state for reconnect
+            clean_disconnect = up in done
+            if clean_disconnect:
+                _saved_preferences.pop(user_id, None)
+                _resume_handles.pop(user_id, None)
+                slog.info("Clean disconnect — cleared saved state for user %s", user_id)
+            else:
+                slog.info("Crash disconnect — preserving state for user %s", user_id)
 
     except Exception:
         slog.exception("Session setup error")
