@@ -263,9 +263,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 TOOL_BUFFER_MS = 300  # ms to wait for batched tool calls
                 try:
                     slog.debug("Downstream: starting receive loop")
+                    MAX_RECEIVE_REENTRIES = 5
+                    reentry_count = 0
                     while True:
+                        reentry_count += 1
+                        if reentry_count > MAX_RECEIVE_REENTRIES:
+                            slog.warning("session.receive() ended %d times without data — ending downstream", reentry_count)
+                            break
                         async for response in session.receive():
                             msg_count += 1
+                            reentry_count = 0  # Reset — got data
 
                             if not ready_sent:
                                 ready_sent = True
@@ -418,6 +425,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     pass
 
                         slog.debug("session.receive() iterator ended after %d messages, re-entering", msg_count)
+
+                    # If we broke out due to max re-entries, notify frontend
+                    try:
+                        await websocket.send_text(json.dumps({"type": "gemini_disconnected"}))
+                    except Exception:
+                        pass
 
                 except WebSocketDisconnect:
                     slog.info("Client disconnected (downstream)")
