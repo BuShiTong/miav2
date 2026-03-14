@@ -292,6 +292,32 @@ function App() {
 
   // ── Session lifecycle ──────────────────────────────────────────
 
+  const verifyAccessCode = useCallback(async (code: string): Promise<{ valid: boolean; error?: string }> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch('/api/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) return { valid: false, error: 'Could not verify code. Try again.' };
+      const data = await res.json();
+      if (!data.valid) return { valid: false, error: data.error || 'Invalid access code' };
+      return { valid: true };
+    } catch (err) {
+      clearTimeout(timeout);
+      return {
+        valid: false,
+        error: err instanceof DOMException && err.name === 'AbortError'
+          ? 'The server hamster stopped running. Is the server up?'
+          : 'The server went offline \u2014 maybe someone watered the servers again?',
+      };
+    }
+  }, []);
+
   const handleStart = useCallback(async () => {
     // Synchronous guard: React batches state updates, so isStarting alone
     // can't prevent two rapid clicks from both entering this function.
@@ -307,45 +333,19 @@ function App() {
 
     setMicError(null);
     setCameraError(null);
+    setCodeError('');
     setIsStarting(true);
 
-    // Validate access code against backend
-    setCodeError('');
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch('/api/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: accessCode }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (!res.ok) {
-        setCodeError('Could not verify code. Try again.');
+      // Validate access code against backend
+      const codeResult = await verifyAccessCode(accessCode);
+      if (!codeResult.valid) {
+        setCodeError(codeResult.error || 'Invalid access code');
         setIsStarting(false);
         isStartingRef.current = false;
         return;
       }
-      const data = await res.json();
-      if (!data.valid) {
-        setCodeError(data.error || 'Invalid access code');
-        setIsStarting(false);
-        isStartingRef.current = false;
-        return;
-      }
-    } catch (err) {
-      setCodeError(
-        err instanceof DOMException && err.name === 'AbortError'
-          ? 'The server hamster stopped running. Is the server up?'
-          : 'The server went offline \u2014 maybe someone watered the servers again?',
-      );
-      setIsStarting(false);
-      isStartingRef.current = false;
-      return;
-    }
 
-    try {
       await startPlayback();
       acquireWakeLock();
       connect();
@@ -385,6 +385,7 @@ function App() {
     releaseWakeLock,
     videoEnabled,
     accessCode,
+    verifyAccessCode,
   ]);
 
   const handleStop = useCallback(() => {
