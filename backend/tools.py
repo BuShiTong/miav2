@@ -136,7 +136,7 @@ def manage_timer(
     state: SessionToolState, action: str, label: str = "",
     duration_seconds: int = 0, timer_id: str = "", adjust_seconds: int = 0,
 ) -> dict:
-    """Manage cooking timers. Actions: set, cancel, pause, resume, adjust, status."""
+    """Manage cooking timers. Actions: set, cancel, pause, resume, adjust."""
     import time
     action = action.lower()
 
@@ -147,6 +147,8 @@ def manage_timer(
             timer_id, _ = found
 
     if action == "set":
+        if not label or not label.strip():
+            return {"error": "Please specify what this timer is for (e.g., 'pasta', 'rice')"}
         if duration_seconds <= 0:
             return {"error": "duration_seconds must be positive"}
         # Dedup: if a timer with the same label was created within the last 10 seconds, skip
@@ -223,17 +225,6 @@ def manage_timer(
         state.emit({"type": "timer_adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining})
         return {"status": "adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining}
 
-    elif action == "status":
-        if not state.active_timers:
-            return {"status": "no active timers"}
-        return {
-            "status": "active",
-            "timers": [
-                {"timer_id": tid, "label": t["label"], "remaining_seconds": _get_remaining(t), "paused": t["paused"]}
-                for tid, t in state.active_timers.items()
-            ],
-        }
-
     return {"error": f"Unknown action: {action}"}
 
 
@@ -296,7 +287,7 @@ def get_tool_declarations() -> list[types.Tool]:
             function_declarations=[
                 types.FunctionDeclaration(
                     name="update_user_preference",
-                    description="SILENT EXECUTION — call immediately without speaking. Save a user preference such as allergies, dietary restrictions, skill level, or serving size. Only speak after receiving the result.",
+                    description="Save a user preference such as allergies, dietary restrictions, skill level, or serving size.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
@@ -315,14 +306,14 @@ def get_tool_declarations() -> list[types.Tool]:
                 ),
                 types.FunctionDeclaration(
                     name="manage_timer",
-                    description="SILENT EXECUTION — call immediately without speaking. Manage cooking timers. Set, cancel, pause, resume, adjust, or check status. Only speak after receiving the result.",
+                    description="Manage cooking timers. Set, cancel, pause, resume, or adjust timers.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
                             "action": types.Schema(
                                 type="STRING",
                                 description="The action to perform",
-                                enum=["set", "cancel", "pause", "resume", "adjust", "status"],
+                                enum=["set", "cancel", "pause", "resume", "adjust"],
                             ),
                             "label": types.Schema(
                                 type="STRING",
