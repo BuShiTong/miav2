@@ -70,7 +70,7 @@ def manage_timer(
     state: SessionToolState, action: str, label: str = "",
     duration_seconds: int = 0, timer_id: str = "", adjust_seconds: int = 0,
 ) -> dict:
-    """Manage cooking timers. Actions: set, cancel, pause, resume, adjust, restart, status."""
+    """Manage cooking timers. Actions: set, cancel, pause, resume, adjust, status."""
     import time
     action = action.lower()
 
@@ -150,21 +150,6 @@ def manage_timer(
         logger.info("Timer adjusted: id=%s by=%+ds new_remaining=%ds", timer_id, adjust_seconds, new_remaining)
         state.emit({"type": "timer_adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining})
         return {"status": "adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining}
-
-    elif action == "restart":
-        timer = state.active_timers.get(timer_id)
-        if not timer:
-            return {"error": "Timer not found"}
-        original = timer["duration_seconds"] if not timer["paused"] else timer.get("remaining_when_paused", timer["duration_seconds"])
-        # Use the original duration from when it was first set (if we stored it)
-        restart_duration = duration_seconds if duration_seconds > 0 else timer["duration_seconds"]
-        timer["set_at"] = time.time()
-        timer["duration_seconds"] = restart_duration
-        timer["paused"] = False
-        timer["remaining_when_paused"] = 0
-        logger.info("Timer restarted: id=%s duration=%ds", timer_id, restart_duration)
-        state.emit({"type": "timer_restarted", "timer_id": timer_id, "duration_seconds": restart_duration})
-        return {"status": "restarted", "timer_id": timer_id, "duration_seconds": restart_duration}
 
     elif action == "status":
         if not state.active_timers:
@@ -258,14 +243,14 @@ def get_tool_declarations() -> list[types.Tool]:
                 ),
                 types.FunctionDeclaration(
                     name="manage_timer",
-                    description="SILENT EXECUTION — call immediately without speaking. Manage cooking timers. Set, cancel, pause, resume, adjust, restart, or check status. Only speak after receiving the result.",
+                    description="SILENT EXECUTION — call immediately without speaking. Manage cooking timers. Set, cancel, pause, resume, adjust, or check status. Only speak after receiving the result.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
                             "action": types.Schema(
                                 type="STRING",
                                 description="The action to perform",
-                                enum=["set", "cancel", "pause", "resume", "adjust", "restart", "status"],
+                                enum=["set", "cancel", "pause", "resume", "adjust", "status"],
                             ),
                             "label": types.Schema(
                                 type="STRING",
@@ -277,7 +262,7 @@ def get_tool_declarations() -> list[types.Tool]:
                             ),
                             "timer_id": types.Schema(
                                 type="STRING",
-                                description="The timer ID. Required for cancel/pause/resume/adjust/restart if label not provided.",
+                                description="The timer ID. Required for cancel/pause/resume/adjust if label not provided.",
                             ),
                             "adjust_seconds": types.Schema(
                                 type="INTEGER",
