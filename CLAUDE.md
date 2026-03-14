@@ -20,6 +20,7 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - Resume token cleanup (24h expiry, prevents unbounded memory growth)
 - Health endpoint (`GET /health` — liveness probe)
 - WebSocket ID validation (regex + length cap — prevents log injection)
+- Mid-session camera toggle (on/off anytime, no upfront mode selection — video is input-only)
 - **[DEBUG]** Google Search grounding metadata logging (`[SEARCH]` prefix in session logs — remove before deploy, see Decision #51)
 
 ## Known Limitation
@@ -37,7 +38,7 @@ See `decisions.md` for the full history of approaches tried (Decisions #19, #24,
 
 - `backend/main.py` — FastAPI server, WebSocket endpoint, Gemini Live API session, tool call buffering
 - `backend/tools.py` — Tool declarations, dispatch, validation layer (`validate_tool_call`)
-- `frontend/` — Browser UI with audio capture/playback, camera, timer display
+- `frontend/` — Browser UI with audio capture/playback, mid-session camera toggle, timer display
 - `purrfect-hopping-tulip.md` — Reference doc listing every custom mechanism and why it exists
 
 ## Key Files

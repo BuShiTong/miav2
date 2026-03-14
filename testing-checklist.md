@@ -1,15 +1,15 @@
-# Testing Checklist — Audio Only
+# Testing Checklist
 
 Check each box when it passes. Write notes if something fails.
 Share the log file from `backend/logs/` after testing.
 
-**Start:** Run backend, open frontend in Chrome, select "Audio Only", code `cookwithmia26`, click Start.
+**Start:** Run backend, open frontend in Chrome, enter code `cookwithmia26`, click Start (starts audio-only, camera can be toggled on mid-session).
 
 ---
 
 ## 1. Connection + Greeting
 - [x] Backend starts without errors
-- [x] App loads, welcome screen shows "Audio Only" selected
+- [x] App loads, welcome screen shows (no mode selector)
 - [x] Enter code, click Start → connection sound plays, button shows "Listening..."
 - [x] Mia greets you within 2-3 seconds ("Hey! What are we cooking?" or similar)
 - [ ] Enter wrong code → error shown, can retry with correct code
@@ -149,37 +149,57 @@ Tests that allergies survive long conversations and can't be "forgotten."
 - [ ] Say: "Set a 90 second timer for eggs" → check log: `duration_display: "1 minute 30 seconds"`
 - [ ] Mia should say the time naturally (not "300 seconds")
 
-## 27. Camera Vision (NEW — Video Mode)
-Switch to "Audio + Video" mode for these tests.
+## 27. Camera Vision (via mid-session toggle)
+Tap camera toggle button during an active session.
 - [ ] Enable camera, show a cutting board or pan → Mia acknowledges what she sees
 - [ ] Show something cooking on a stove → Mia comments on cooking progress
 - [ ] (If possible) show something smoking → does Mia warn about safety?
 - [ ] Don't show anything interesting → Mia stays quiet (doesn't narrate everything)
 
-## 28. Error Messages (NEW)
+## 28. Camera Toggle (NEW)
+- [ ] Welcome screen has NO mode selector (audio/video choice removed)
+- [ ] Session starts audio-only by default
+- [ ] Tap camera toggle mid-session → camera turns on, loading state shown briefly, then feed appears
+- [ ] Camera uses front-facing by default
+- [ ] Tap camera toggle again → camera turns off, returns to audio visualizer
+- [ ] Rapid double-tap on camera toggle → no crash, single state change
+- [ ] Deny camera permission when prompted → graceful error, session continues audio-only
+- [ ] Toggle camera off and on during active reconnection → no crash or stuck state
+- [ ] Haptic feedback fires on each camera toggle tap
+
+## 29. Session Layout (NEW)
+- [ ] Timers appear at top of session view (above camera/visualizer)
+- [ ] Preference chips appear at bottom of session view
+- [ ] Timers and prefs are visibly larger than before
+- [ ] Camera feed is nearly full-screen with floating chips overlaid
+- [ ] Border glow changes based on audio state (speaking vs listening)
+- [ ] Preference chips auto-fade after appearing
+- [ ] Switching between camera and visualizer uses crossfade transition
+
+## 30. Error Messages (was #28)
 - [ ] Stop the backend, try to connect → error message is playful (not generic)
 - [ ] Disconnect Wi-Fi, try to connect → different playful error
 - [ ] Note the exact messages — are they fun and clear about what's wrong?
 
-## 29. Context Window Compression (NEW)
+## 31. Context Window Compression
 - [ ] Start audio-only session, talk for 5+ min → no crashes, session remains stable
 - [ ] Start camera session, keep camera on 5+ min → no crashes (previously would overflow)
 - [ ] Check log: "compression=trigger@100k/target@80k" appears on session start
 
-## 30. Session Resumption (NEW)
+## 32. Session Resumption
 - [ ] Start a session, talk for a minute, then wait ~10 min for GoAway
 - [ ] Check log: "GoAway received" and "Session resumption handle captured" appear
 - [ ] After reconnect: ask Mia about something from the earlier conversation → she remembers
 - [ ] Check log: "resuming=True" on the reconnected session, "Resumed session — skipping greeting"
 - [ ] Fresh start (click Stop then Start): Mia greets normally (not resuming)
 
-## 31. System Instruction Updates (NEW)
+## 33. System Instruction Updates
 - [ ] Set a preference ("I'm allergic to nuts"), then wait 5 min
 - [ ] Check log: "System instruction update: User preferences: allergies: nuts" appears
 - [ ] Set a timer, wait 5 min → log shows timer state in system instruction update
 - [ ] After long session (10+ min): ask about allergies → Mia still knows (system instruction survived compression)
 
-## 32. Preference Persistence Across Crashes (NEW)
+## 34. Preference Persistence Across Crashes
 Tests that allergies survive Gemini connection resets.
 - [ ] Say "I'm allergic to nuts" → chip appears, check log for "Preference context injected"
 - [ ] Wait for GoAway/reconnect (or stop backend briefly to force reconnect)
@@ -190,25 +210,25 @@ Tests that allergies survive Gemini connection resets.
 - [ ] Check log: "Clean disconnect — cleared saved state" on Stop
 - [ ] Fresh start: no "Restored preferences" log line
 
-## 33. WebSocket Send Timeout (NEW)
+## 35. WebSocket Send Timeout
 Tests that dead client connections are cleaned up instead of hanging.
 - [ ] Normal session works identically — no timeout warnings in log during healthy conversation
 - [ ] Kill browser tab mid-conversation (Task Manager or close tab) → check backend log: "WebSocket send timed out" appears within 5 seconds
 - [ ] After timeout: backend session ends cleanly (no hanging processes)
 - [ ] Rapid audio playback (continuous Mia speaking) → no timeout warnings (healthy sends complete well under 5s)
 
-## 34. Health Endpoint (NEW)
+## 36. Health Endpoint
 - [ ] `curl http://localhost:8000/health` → returns `{"status":"ok"}` with HTTP 200
 - [ ] Health endpoint works even when no WebSocket sessions are active
 - [ ] No log entries created by health check hits
 
-## 35. WebSocket ID Validation (NEW)
+## 37. WebSocket ID Validation
 - [ ] Normal session connects fine (frontend-generated IDs pass validation)
 - [ ] Check backend log: no "Rejected WebSocket" warnings during normal use
 - [ ] (Advanced) Connect with malicious user_id containing `../` or newlines → connection closed with 1008
 - [ ] (Advanced) Connect with 200-character ID → connection closed with 1008
 
-## 36. Pre-Deployment Cleanup (NEW)
+## 38. Pre-Deployment Cleanup
 - [ ] Remove `[DEBUG] Google Search grounding detection` block from `main.py` (search for `[SEARCH]`)
 
 ---
@@ -244,12 +264,14 @@ Tests that dead client connections are cleaned up instead of hanging.
 | 25 | Timer Validation Limits | | | |
 | 26 | Duration Formatting | | | |
 | 27 | Camera Vision | | | |
-| 28 | Error Messages | | | |
-| 29 | Context Window Compression | | | |
-| 30 | Session Resumption | | | |
-| 31 | System Instruction Updates | | | |
-| 32 | Preference Persistence Across Crashes | | | |
-| 33 | WebSocket Send Timeout | | | |
-| 34 | Health Endpoint | | | |
-| 35 | WebSocket ID Validation | | | |
-| 36 | Pre-Deployment Cleanup | | | |
+| 28 | Camera Toggle | | | |
+| 29 | Session Layout | | | |
+| 30 | Error Messages | | | |
+| 31 | Context Window Compression | | | |
+| 32 | Session Resumption | | | |
+| 33 | System Instruction Updates | | | |
+| 34 | Preference Persistence Across Crashes | | | |
+| 35 | WebSocket Send Timeout | | | |
+| 36 | Health Endpoint | | | |
+| 37 | WebSocket ID Validation | | | |
+| 38 | Pre-Deployment Cleanup | | | |
