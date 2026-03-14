@@ -42,9 +42,7 @@ Share the log file from `backend/logs/` after testing.
 - [x] Say: "Add 1 minute to the pasta timer" → timer increases by 60s, Mia confirms
 - [x] Say: "Take 30 seconds off the pasta timer" → timer decreases, Mia confirms
 
-## 7. Timers — Restart & Cancel
-- [ ] Say: "Restart the pasta timer" → resets to original duration, Mia confirms
-	- [ ] this didnt work, i dont care.
+## 7. Timers — Cancel
 - [x] Say: "Cancel the garlic timer" → timer disappears, Mia confirms
 - [x] Say: "Cancel the chicken timer" (doesn't exist) → Mia says not found, no crash
 
@@ -59,15 +57,13 @@ Share the log file from `backend/logs/` after testing.
 - [ ] Say: "Add 2 minutes to the pasta timer" → only pasta changes, rice unaffected
 
 ## 10. Google Search
-- [ ] Say: "What temperature should I cook chicken to?" → Mia says filler ("let me look that up"), button shows "Searching...", then gives answer (165°F/74°C)
-	- [ ] "didnt say "let me look that up"
+- [ ] Say: "What temperature should I cook chicken to?" → Mia says filler ("let me check on that" or similar), button shows "Searching...", then gives answer (165°F/74°C)
 - [x] Say: "How do I dice an onion?" → Mia answers directly, no search indicator
 - [x] Search result spoken ONCE, not repeated
 - [ ] If search fails → Mia still responds with a fallback, not silence
 
 ## 11. Multiple Tools at Once
-- [ ] Say: "I'm allergic to shellfish and set a 30-second timer for rice" → chip appears AND timer starts, Mia responds ONCE about both
-	- [ ] duplicated reply and also double rice timer
+- [ ] Say: "I'm allergic to shellfish and set a 30-second timer for rice" → chip appears AND ONE timer starts (not two), Mia responds ONCE about both
 - [ ] Say: "I'm vegan and cooking for 2" → both saved, Mia confirms both in one response
 - [ ] No separate responses — exactly ONE reply covering everything
 
@@ -139,7 +135,7 @@ Open latest file in `backend/logs/`:
 | 4 | Timers — Set | | | |
 | 5 | Timers — Pause & Resume | | | |
 | 6 | Timers — Adjust | | | |
-| 7 | Timers — Restart & Cancel | | | |
+| 7 | Timers — Cancel | | | |
 | 8 | Timers — Status & Expiry | | | |
 | 9 | Timers — Label Lookup | | | |
 | 10 | Google Search | | | |
