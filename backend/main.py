@@ -160,7 +160,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
             await session.send_client_content(
                 turns=types.Content(
                     role="user",
-                    parts=[types.Part(text="[Session started — greet the user and ask what they're cooking]")],
+                    parts=[types.Part(text="[Session started]")],
                 ),
                 turn_complete=True,
             )

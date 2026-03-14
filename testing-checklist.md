@@ -15,7 +15,7 @@ Share the log file from `backend/logs/` after testing.
 - [ ] Enter wrong code → error shown, can retry with correct code
 
 ## 2. Basic Conversation
-- [ ] Say: "I'm making spaghetti bolognese tonight" → Mia responds about pasta/bolognese
+- [x] Say: "I'm making spaghetti bolognese tonight" → Mia responds about pasta/bolognese
 - [ ] Mia keeps responses short (5-35 words, not lectures)
 - [ ] 3-4 exchanges back and forth → Mia remembers earlier context
 
@@ -48,9 +48,9 @@ Share the log file from `backend/logs/` after testing.
 
 ## 8. Timers — Status & Expiry
 - [ ] Say: "How much time is left?" → Mia reports all active timers
-- [ ] Let timer reach zero → 3 beeps, phone vibrates, Mia announces it's done
-- [ ] Timer auto-removes from screen after ~10 seconds
-- [ ] Say: "Pause the pasta timer" after it expired → Mia says not found, no crash
+- [x] Let timer reach zero → 3 beeps, phone vibrates, Mia announces it's done
+- [x] Timer auto-removes from screen after ~10 seconds
+- [x] Say: "Pause the pasta timer" after it expired → Mia says not found, no crash
 
 ## 9. Timers — Label Lookup
 - [ ] Two timers running (pasta + rice). Say: "Pause the rice timer" → correct one pauses
