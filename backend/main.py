@@ -34,6 +34,11 @@ from tools import (
     validate_tool_call,
 )
 
+# ── Session resumption handles (per user, survives WebSocket reconnects) ──
+# Stored by user_id so reconnecting clients can resume with preserved context.
+# Connection lifetime is ~10 min; handles are valid ~24 hours on Vertex.
+_resume_handles: dict[str, str] = {}
+
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
@@ -134,6 +139,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     event_queue: asyncio.Queue = asyncio.Queue(maxsize=100)
     tool_state = SessionToolState(event_queue)
 
+    # Check for a stored resumption handle from a previous connection
+    resume_handle = _resume_handles.get(user_id)
+    is_resuming = resume_handle is not None
+
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"],
         speech_config=types.SpeechConfig(
@@ -160,21 +169,30 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
             sliding_window=types.SlidingWindow(target_tokens=80_000),
             trigger_tokens=100_000,
         ),
+        # Session resumption: preserve context across reconnections (~10 min connection lifetime)
+        # Handles valid ~24 hours on Vertex AI
+        session_resumption=types.SessionResumptionConfig(handle=resume_handle),
     )
 
     try:
         async with client.aio.live.connect(model=MODEL, config=config) as session:
-            slog.info("Live session opened: model=%s compression=trigger@100k/target@80k", MODEL)
-
-            # Pre-warm: trigger Mia's greeting
-            await session.send_client_content(
-                turns=types.Content(
-                    role="user",
-                    parts=[types.Part(text="[Session started]")],
-                ),
-                turn_complete=True,
+            slog.info(
+                "Live session opened: model=%s compression=trigger@100k/target@80k resuming=%s",
+                MODEL, is_resuming,
             )
-            slog.debug("Greeting sent")
+
+            if not is_resuming:
+                # Fresh session: trigger Mia's greeting
+                await session.send_client_content(
+                    turns=types.Content(
+                        role="user",
+                        parts=[types.Part(text="[Session started]")],
+                    ),
+                    turn_complete=True,
+                )
+                slog.debug("Greeting sent")
+            else:
+                slog.info("Resumed session — skipping greeting")
 
             async def upstream():
                 """Browser → Gemini: forward audio, video frames, and timer events."""
@@ -374,6 +392,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     tool_buffer_task.cancel()
                                 tool_buffer_task = asyncio.create_task(_flush_tool_buffer())
                                 continue
+
+                            # ── Session resumption handle capture ──
+                            if getattr(response, 'session_resumption_update', None):
+                                update = response.session_resumption_update
+                                new_handle = getattr(update, 'new_handle', None)
+                                if new_handle:
+                                    _resume_handles[user_id] = new_handle
+                                    slog.debug("Session resumption handle captured")
+
+                            # ── GoAway: connection ending soon ──
+                            if getattr(response, 'go_away', None):
+                                time_left = getattr(response.go_away, 'time_left', '?')
+                                slog.info("GoAway received — connection ending in %s", time_left)
 
                             # ── Tool call cancellation ──
                             if response.tool_call_cancellation:
