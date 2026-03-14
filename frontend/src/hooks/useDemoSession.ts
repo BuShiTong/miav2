@@ -9,7 +9,6 @@ const CYCLE_INTERVAL_MS = 3000;
 const DEMO_PREFERENCES: Preferences = {
   allergies: "tree nuts",
   dietary: "vegetarian",
-  skill_level: "intermediate",
 };
 
 function createDemoTimers(): Timer[] {

@@ -25,11 +25,6 @@ export function OverlayChips({ preferences }: OverlayChipsProps) {
           {preferences.dietary}
         </span>
       )}
-      {preferences.skill_level && (
-        <span className="chip chip--preference">
-          {preferences.skill_level}
-        </span>
-      )}
       {preferences.serving_size && (
         <span className="chip chip--preference">
           Serves {preferences.serving_size}

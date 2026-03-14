@@ -388,7 +388,7 @@ def get_tool_declarations() -> list[types.Tool]:
                             "key": types.Schema(
                                 type="STRING",
                                 description="The preference category",
-                                enum=["allergies", "dietary", "skill_level", "serving_size"],
+                                enum=["allergies", "dietary", "serving_size"],
                             ),
                             "value": types.Schema(
                                 type="STRING",
