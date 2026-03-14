@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -135,6 +136,11 @@ async def health():
 
 # ── WebSocket send helper ──────────────────────────────────
 
+# Valid WebSocket path parameter pattern: alphanumeric, underscores, hyphens only.
+# Prevents log injection (newlines in logged IDs) and path issues (session_id used in log filenames).
+_VALID_ID = re.compile(r"^[a-zA-Z0-9_-]+$")
+_MAX_ID_LENGTH = 128
+
 WS_SEND_TIMEOUT = 5.0  # seconds — prevents zombie connections from blocking tasks
 
 
@@ -155,6 +161,20 @@ async def _safe_send(ws: WebSocket, data: dict, slog: logging.Logger) -> bool:
 @app.websocket("/ws/{user_id}/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str):
     await websocket.accept()
+
+    if (
+        len(user_id) > _MAX_ID_LENGTH
+        or len(session_id) > _MAX_ID_LENGTH
+        or not _VALID_ID.match(user_id)
+        or not _VALID_ID.match(session_id)
+    ):
+        logger.warning(
+            "Rejected WebSocket: invalid ID format (user=%.32s… session=%.32s…)",
+            user_id, session_id,
+        )
+        await websocket.close(code=1008, reason="Invalid ID format")
+        return
+
     logger.info("Connected: user=%s session=%s", user_id, session_id)
     slog = _create_session_logger(session_id)
     slog.info("Connected: user=%s session=%s", user_id, session_id)
