@@ -153,11 +153,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
         ),
         # Vertex AI-only features (rejected on AI Studio, accepted on Vertex)
         enable_affective_dialog=True,
+        # Context window compression: discard oldest turns when tokens exceed trigger
+        # Audio burns ~25 tokens/sec, camera ~258 tokens/sec
+        # At 100K trigger: audio-only ~66 min, camera ~6 min before first compression
+        context_window_compression=types.ContextWindowCompressionConfig(
+            sliding_window=types.SlidingWindow(target_tokens=80_000),
+            trigger_tokens=100_000,
+        ),
     )
 
     try:
         async with client.aio.live.connect(model=MODEL, config=config) as session:
-            slog.info("Live session opened: model=%s", MODEL)
+            slog.info("Live session opened: model=%s compression=trigger@100k/target@80k", MODEL)
 
             # Pre-warm: trigger Mia's greeting
             await session.send_client_content(
