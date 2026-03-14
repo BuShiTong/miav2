@@ -8,10 +8,10 @@ Share the log file from `backend/logs/` after testing.
 ---
 
 ## 1. Connection + Greeting
-- [ ] Backend starts without errors
-- [ ] App loads, welcome screen shows "Audio Only" selected
-- [ ] Enter code, click Start → connection sound plays, button shows "Listening..."
-- [ ] Mia greets you within 2-3 seconds ("Hey! What are we cooking?" or similar)
+- [x] Backend starts without errors
+- [x] App loads, welcome screen shows "Audio Only" selected
+- [x] Enter code, click Start → connection sound plays, button shows "Listening..."
+- [x] Mia greets you within 2-3 seconds ("Hey! What are we cooking?" or similar)
 - [ ] Enter wrong code → error shown, can retry with correct code
 
 ## 2. Basic Conversation
@@ -20,32 +20,33 @@ Share the log file from `backend/logs/` after testing.
 - [ ] 3-4 exchanges back and forth → Mia remembers earlier context
 
 ## 3. Preferences
-- [ ] Say: "I'm allergic to nuts" → silent save, one confirmation, chip appears
-- [ ] Say: "I'm vegetarian" → same: silent, one response, chip appears
+- [x] Say: "I'm allergic to nuts" → silent save, one confirmation, chip appears
+- [x] Say: "I'm vegetarian" → same: silent, one response, chip appears
 - [ ] Say: "I'm cooking for 4 people" → same behavior
 - [ ] Say: "I'm a beginner cook" → same behavior
 - [ ] No double-talk: Mia speaks ONCE per preference (no "let me save that" before confirming)
 
 ## 4. Timers — Set
-- [ ] Say: "Set a 2-minute timer for pasta" → Mia confirms once, timer appears counting down
-- [ ] Say: "Set a 30-second timer for garlic" → second timer appears, both count independently
+- [x] Say: "Set a 2-minute timer for pasta" → Mia confirms once, timer appears counting down
+- [x] Say: "Set a 30-second timer for garlic" → second timer appears, both count independently
 - [ ] No double-talk: Mia speaks ONCE per timer set
 
 ## 5. Timers — Pause & Resume
-- [ ] Say: "Pause the pasta timer" → countdown stops, Mia confirms
-- [ ] Wait 10 seconds → timer still shows same time (not ticking while paused)
-- [ ] Say: "Resume the pasta timer" → countdown resumes, Mia confirms
-- [ ] Say: "Pause the pasta timer" when already paused → Mia says "already paused"
-- [ ] Say: "Resume the pasta timer" when already running → Mia says "already running"
+- [x] Say: "Pause the pasta timer" → countdown stops, Mia confirms
+- [x] Wait 10 seconds → timer still shows same time (not ticking while paused)
+- [x] Say: "Resume the pasta timer" → countdown resumes, Mia confirms
+- [x] Say: "Pause the pasta timer" when already paused → Mia says "already paused"
+- [x] Say: "Resume the pasta timer" when already running → Mia says "already running"
 
 ## 6. Timers — Adjust
-- [ ] Say: "Add 1 minute to the pasta timer" → timer increases by 60s, Mia confirms
-- [ ] Say: "Take 30 seconds off the pasta timer" → timer decreases, Mia confirms
+- [x] Say: "Add 1 minute to the pasta timer" → timer increases by 60s, Mia confirms
+- [x] Say: "Take 30 seconds off the pasta timer" → timer decreases, Mia confirms
 
 ## 7. Timers — Restart & Cancel
 - [ ] Say: "Restart the pasta timer" → resets to original duration, Mia confirms
-- [ ] Say: "Cancel the garlic timer" → timer disappears, Mia confirms
-- [ ] Say: "Cancel the chicken timer" (doesn't exist) → Mia says not found, no crash
+	- [ ] this didnt work, i dont care.
+- [x] Say: "Cancel the garlic timer" → timer disappears, Mia confirms
+- [x] Say: "Cancel the chicken timer" (doesn't exist) → Mia says not found, no crash
 
 ## 8. Timers — Status & Expiry
 - [ ] Say: "How much time is left?" → Mia reports all active timers
@@ -59,12 +60,14 @@ Share the log file from `backend/logs/` after testing.
 
 ## 10. Google Search
 - [ ] Say: "What temperature should I cook chicken to?" → Mia says filler ("let me look that up"), button shows "Searching...", then gives answer (165°F/74°C)
-- [ ] Say: "How do I dice an onion?" → Mia answers directly, no search indicator
-- [ ] Search result spoken ONCE, not repeated
+	- [ ] "didnt say "let me look that up"
+- [x] Say: "How do I dice an onion?" → Mia answers directly, no search indicator
+- [x] Search result spoken ONCE, not repeated
 - [ ] If search fails → Mia still responds with a fallback, not silence
 
 ## 11. Multiple Tools at Once
 - [ ] Say: "I'm allergic to shellfish and set a 30-second timer for rice" → chip appears AND timer starts, Mia responds ONCE about both
+	- [ ] duplicated reply and also double rice timer
 - [ ] Say: "I'm vegan and cooking for 2" → both saved, Mia confirms both in one response
 - [ ] No separate responses — exactly ONE reply covering everything
 
