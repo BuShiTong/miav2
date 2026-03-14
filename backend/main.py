@@ -238,10 +238,22 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 msg_count = 0
                 user_transcript: list[str] = []
                 mia_transcript: list[str] = []
-                # Audio gate: mute audio to browser during tool execution
-                audio_gated = False
+                # Audio gate state machine (prevents pre-tool narration + duplicate responses)
+                # NORMAL: audio passes through
+                # BLOCKING: audio dropped (tool call in progress, waiting for response)
+                # PASSING: first post-tool response playing, audio passes through
+                # COOLDOWN: audio dropped (catching duplicate response after first one)
+                GATE_NORMAL = "NORMAL"
+                GATE_BLOCKING = "BLOCKING"
+                GATE_PASSING = "PASSING"
+                GATE_COOLDOWN = "COOLDOWN"
+                gate_state = GATE_NORMAL
                 tool_response_sent = False
+                last_tool_response_time = 0.0
+                cooldown_start = 0.0
                 gated_chunks_dropped = 0
+                BATCH_WINDOW = 0.5    # seconds after last tool response before allowing audio
+                COOLDOWN_TIMEOUT = 3.0  # seconds to catch duplicate responses
                 try:
                     slog.debug("Downstream: starting receive loop")
                     while True:
@@ -262,11 +274,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 slog.info("Tool call received: %d function(s): %s",
                                           len(fc_list),
                                           [fc.name for fc in fc_list])
-                                # Activate audio gate — drop audio until real response arrives
-                                audio_gated = True
+                                gate_state = GATE_BLOCKING
                                 tool_response_sent = False
                                 gated_chunks_dropped = 0
-                                slog.debug("Audio gate ACTIVATED")
+                                slog.debug("Gate → BLOCKING")
 
                                 async def _run_tool(fc):
                                     t0 = time.monotonic()
@@ -295,6 +306,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     function_responses=list(responses),
                                 )
                                 tool_response_sent = True
+                                last_tool_response_time = time.monotonic()
                                 slog.info("Tool responses sent (%d)", len(responses))
                                 continue
 
@@ -302,22 +314,36 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if response.tool_call_cancellation:
                                 slog.info("Tool call cancelled: %s",
                                           response.tool_call_cancellation)
+                                if gate_state == GATE_BLOCKING:
+                                    gate_state = GATE_NORMAL
+                                    slog.debug("Gate → NORMAL (tool cancelled)")
 
                             # ── Audio data ──
                             sc = response.server_content
                             if sc and sc.model_turn and sc.model_turn.parts:
                                 for part in sc.model_turn.parts:
                                     if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("audio/"):
-                                        # Audio gate: drop pre-tool narration, pass post-tool response
-                                        if audio_gated:
-                                            if tool_response_sent:
-                                                # Tool result was sent — this is the real response, unmute
-                                                slog.debug("Audio gate DEACTIVATED (dropped %d chunks)", gated_chunks_dropped)
-                                                audio_gated = False
+                                        # State machine audio gate
+                                        if gate_state == GATE_COOLDOWN:
+                                            if time.monotonic() - cooldown_start > COOLDOWN_TIMEOUT:
+                                                # Cooldown expired — not a duplicate, let it through
+                                                slog.debug("Gate → NORMAL (cooldown timeout, dropped %d)", gated_chunks_dropped)
+                                                gate_state = GATE_NORMAL
                                             else:
-                                                # Still waiting for tool result — drop this audio
+                                                # Still in cooldown — drop duplicate audio
                                                 gated_chunks_dropped += 1
                                                 continue
+                                        elif gate_state == GATE_BLOCKING:
+                                            if tool_response_sent and time.monotonic() - last_tool_response_time >= BATCH_WINDOW:
+                                                # Tool response sent and batch window passed — first real response
+                                                slog.debug("Gate → PASSING (dropped %d in BLOCKING)", gated_chunks_dropped)
+                                                gate_state = GATE_PASSING
+                                                gated_chunks_dropped = 0
+                                            else:
+                                                # Still waiting for tool response or within batch window
+                                                gated_chunks_dropped += 1
+                                                continue
+                                        # NORMAL and PASSING: pass audio through
 
                                         audio_b64 = base64.b64encode(part.inline_data.data).decode("ascii")
                                         await websocket.send_text(json.dumps({
@@ -338,11 +364,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
 
-                            # Turn complete — flush transcripts and reset gate
+                            # Turn complete — flush transcripts + state machine transitions
                             if sc and sc.turn_complete:
-                                if audio_gated:
-                                    slog.debug("Audio gate reset on turn_complete (dropped %d chunks)", gated_chunks_dropped)
-                                    audio_gated = False
+                                if gate_state == GATE_PASSING:
+                                    gate_state = GATE_COOLDOWN
+                                    cooldown_start = time.monotonic()
+                                    gated_chunks_dropped = 0
+                                    slog.debug("Gate → COOLDOWN")
+                                elif gate_state == GATE_COOLDOWN:
+                                    slog.debug("Gate → NORMAL (cooldown done, dropped %d)", gated_chunks_dropped)
+                                    gate_state = GATE_NORMAL
+                                elif gate_state == GATE_BLOCKING:
+                                    # Between tool call waves — stay BLOCKING
+                                    slog.debug("Gate stays BLOCKING on turn_complete")
                                 if user_transcript:
                                     slog.info("User: %s", "".join(user_transcript))
                                     user_transcript.clear()
@@ -351,11 +385,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     mia_transcript.clear()
                                 slog.debug("Turn complete (msg #%d)", msg_count)
 
-                            # Interruption (barge-in) — flush transcripts and reset gate
+                            # Interruption (barge-in) — flush transcripts + reset gate
                             if sc and sc.interrupted:
-                                if audio_gated:
-                                    slog.debug("Audio gate reset on interrupt (dropped %d chunks)", gated_chunks_dropped)
-                                    audio_gated = False
+                                if gate_state != GATE_NORMAL:
+                                    slog.debug("Gate → NORMAL (interrupted, was %s, dropped %d)", gate_state, gated_chunks_dropped)
+                                    gate_state = GATE_NORMAL
                                 if user_transcript:
                                     slog.info("User: %s", "".join(user_transcript))
                                     user_transcript.clear()
