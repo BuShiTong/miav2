@@ -13,9 +13,7 @@ export interface SearchSource {
   url: string;
 }
 
-export type SearchEvent =
-  | { type: "search_started" }
-  | { type: "search_complete"; sources?: SearchSource[] };
+export type SearchEvent = { type: "search_complete"; sources?: SearchSource[] };
 
 export interface PreferenceEvent {
   type: "preference_updated";

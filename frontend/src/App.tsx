@@ -45,7 +45,6 @@ export type ButtonState =
   | "reconnecting"
   | "listening"
   | "speaking"
-  | "searching"
   | "processing";
 
 const isPreviewAvailable = new URLSearchParams(window.location.search).has("preview");
@@ -127,7 +126,7 @@ function App() {
     [handleTimerEvent],
   );
 
-  const { isSearching, sources, handleSearchEvent, resetSearch } =
+  const { sources, handleSearchEvent, resetSearch } =
     useSearch();
 
   const { preferences, handlePreferenceEvent, resetPreferences } =
@@ -230,11 +229,9 @@ function App() {
         ? "connecting"
         : isPlaying
           ? "speaking"
-          : isSearching
-            ? "searching"
-            : isProcessing
-              ? "processing"
-              : "listening";
+          : isProcessing
+            ? "processing"
+            : "listening";
 
   const voiceRingClass = VOICE_RING[buttonState];
   const buttonLabel = BUTTON_LABEL[buttonState];
@@ -474,7 +471,7 @@ function App() {
           isConnected={demo.isConnected}
           isConnecting={demo.isConnecting}
           isReconnecting={demo.isReconnecting}
-          isSearching={demo.isSearching}
+
           timers={demo.timers}
           preferences={demo.preferences}
           sources={[]}
@@ -520,7 +517,7 @@ function App() {
         isConnected={isConnected}
         isConnecting={isConnecting}
         isReconnecting={isReconnecting}
-        isSearching={isSearching}
+
         timers={visibleTimers}
         preferences={preferences}
         sources={sources}

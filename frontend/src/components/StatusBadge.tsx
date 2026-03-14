@@ -8,7 +8,6 @@ interface StatusBadgeProps {
   isConnected: boolean;
   isConnecting: boolean;
   isReconnecting: boolean;
-  isSearching: boolean;
 }
 
 export function StatusBadge({
@@ -19,18 +18,15 @@ export function StatusBadge({
   isConnected,
   isConnecting,
   isReconnecting,
-  isSearching,
 }: StatusBadgeProps) {
-  const dotColor = isSearching
-    ? "var(--warning)"
-    : isConnected
-      ? "var(--accent)"
-      : isConnecting || isReconnecting
-        ? "var(--warning)"
-        : "var(--text-tertiary)";
+  const dotColor = isConnected
+    ? "var(--accent)"
+    : isConnecting || isReconnecting
+      ? "var(--warning)"
+      : "var(--text-tertiary)";
 
   const dotClass =
-    buttonState === "listening" || buttonState === "searching" || buttonState === "processing"
+    buttonState === "listening" || buttonState === "processing"
       ? "status-badge__dot status-badge__dot--pulse"
       : "status-badge__dot";
 

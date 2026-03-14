@@ -6,7 +6,7 @@ export const VOICE_RING: Record<ButtonState, string> = {
   reconnecting: "voice-ring voice-ring--reconnecting",
   listening: "voice-ring voice-ring--listening",
   speaking: "voice-ring voice-ring--speaking",
-  searching: "voice-ring voice-ring--searching",
+
   processing: "voice-ring voice-ring--processing",
 };
 
@@ -16,7 +16,7 @@ export const BUTTON_LABEL: Record<ButtonState, string> = {
   reconnecting: "Reconnecting...",
   listening: "Listening...",
   speaking: "Speaking...",
-  searching: "Searching...",
+
   processing: "Processing...",
 };
 
@@ -26,6 +26,6 @@ export const SR_ANNOUNCEMENT: Record<ButtonState, string> = {
   reconnecting: "Reconnecting to AI",
   listening: "AI is listening",
   speaking: "AI is speaking",
-  searching: "Searching the web",
+
   processing: "AI is processing",
 };

@@ -19,7 +19,6 @@ interface SessionViewProps {
   isConnected: boolean;
   isConnecting: boolean;
   isReconnecting: boolean;
-  isSearching: boolean;
   timers: Timer[];
   preferences: Preferences;
   sources: SearchSource[];
@@ -45,7 +44,6 @@ export function SessionView({
   isConnected,
   isConnecting,
   isReconnecting,
-  isSearching,
   timers,
   preferences,
   sources,
@@ -75,7 +73,7 @@ export function SessionView({
           isConnected={isConnected}
           isConnecting={isConnecting}
           isReconnecting={isReconnecting}
-          isSearching={isSearching}
+
         />
       </header>
 

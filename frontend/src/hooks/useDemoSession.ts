@@ -4,7 +4,7 @@ import type { Timer } from "./useTimers";
 import type { Preferences } from "./usePreferences";
 import { VOICE_RING, BUTTON_LABEL, SR_ANNOUNCEMENT } from "../lib/sessionConstants";
 
-const CYCLE_STATES: ButtonState[] = ["listening", "speaking", "searching", "processing"];
+const CYCLE_STATES: ButtonState[] = ["listening", "speaking", "processing"];
 const CYCLE_INTERVAL_MS = 3000;
 
 const DEMO_PREFERENCES: Preferences = {
@@ -87,7 +87,7 @@ export function useDemoSession() {
     isConnected: true,
     isConnecting: false,
     isReconnecting: false,
-    isSearching: buttonState === "searching",
+
     isPlaying: buttonState === "speaking",
     timers,
     preferences: DEMO_PREFERENCES,

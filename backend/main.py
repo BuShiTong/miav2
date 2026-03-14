@@ -580,7 +580,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                             # ── Google Search grounding → emit source chips to frontend ──
                             if sc and sc.grounding_metadata:
-                                tool_state.emit({"type": "search_started"})
                                 gm = sc.grounding_metadata
                                 chunks = getattr(gm, "grounding_chunks", None)
                                 slog.info(
