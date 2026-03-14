@@ -12,7 +12,7 @@ export function SearchSources({ sources }: SearchSourcesProps) {
       {sources.map((source, i) => (
         <a
           key={i}
-          href={source.url}
+          href={/^https?:\/\//.test(source.url) ? source.url : "#"}
           target="_blank"
           rel="noopener noreferrer"
           className="chip chip--source"
