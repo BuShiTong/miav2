@@ -12,6 +12,16 @@ logger = logging.getLogger("mia.tools")
 # Cheap model for search — fast, low cost, no thinking
 SEARCH_MODEL = os.getenv("SEARCH_MODEL", "gemini-2.5-flash-lite")
 
+# System instruction for the search model — keeps answers clean for Mia to read aloud
+SEARCH_SYSTEM_INSTRUCTION = (
+    "You are a cooking assistant's research tool. Answer cooking-related questions accurately using search results.\n"
+    "Rules:\n"
+    "- Match your answer length to the question: short for simple facts, longer for recipes or explanations\n"
+    "- Include specific numbers when relevant (temperatures, times, quantities, ratios)\n"
+    "- For substitutions, give exact ratios (e.g., '1 cup buttermilk = 1 cup milk + 1 tbsp lemon juice')\n"
+    "- No disclaimers, greetings, or filler — just the answer"
+)
+
 
 # ── Validation keywords (for transcription-based tool call validation) ────
 
@@ -336,12 +346,21 @@ async def search_web(state: SessionToolState, query: str, search_client: genai.C
             model=SEARCH_MODEL,
             contents=query,
             config=types.GenerateContentConfig(
+                system_instruction=SEARCH_SYSTEM_INSTRUCTION,
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 thinking_config=types.ThinkingConfig(thinking_budget=0),
+                temperature=0,
+                max_output_tokens=1500,
             ),
         )
         answer = response.text or "No results found."
-        logger.info("Search complete: query=%s answer_len=%d", query, len(answer))
+        usage = response.usage_metadata
+        logger.info(
+            "Search complete: query=%s answer_len=%d input_tokens=%s output_tokens=%s",
+            query, len(answer),
+            getattr(usage, "prompt_token_count", "?"),
+            getattr(usage, "candidates_token_count", "?"),
+        )
         state.emit({"type": "search_complete"})
         return {"answer": answer}
     except Exception as e:
