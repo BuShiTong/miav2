@@ -96,6 +96,25 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
                 return True, f"keyword '{kw}' found for action '{action}'"
         return False, f"no keyword for action '{action}' found in transcription"
 
+    if name == "camera_control":
+        action = (args.get("action") or "").lower()
+        if action == "on":
+            keywords = ["turn on camera", "enable camera", "start camera",
+                        "open camera", "turn on the camera", "start the camera"]
+        elif action == "off":
+            keywords = ["turn off camera", "disable camera", "stop camera",
+                        "close camera", "turn off the camera", "stop the camera"]
+        elif action == "flip":
+            keywords = ["flip camera", "switch camera", "front camera",
+                        "back camera", "rear camera", "selfie camera",
+                        "flip the camera", "switch the camera"]
+        else:
+            return True, "unknown camera action — fail-open"
+        for kw in keywords:
+            if kw in text:
+                return True, f"keyword '{kw}' found for camera action '{action}'"
+        return False, f"no keyword for camera action '{action}'"
+
     # Unknown tool: allow (fail-open)
     return True, "unknown tool — fail-open"
 
@@ -320,11 +339,22 @@ def manage_timer(
     return {"error": f"Unknown action: {action}"}
 
 
+def camera_control(state: SessionToolState, action: str) -> dict:
+    """Control the user's camera (on/off/flip). Fire-and-forget via event."""
+    action = action.lower()
+    if action not in ("on", "off", "flip"):
+        return {"error": f"Unknown camera action: {action}"}
+    state.emit({"type": "camera_control", "action": action})
+    logger.info("Camera control: %s", action)
+    return {"status": "ok", "action": action}
+
+
 # ── Tool dispatch ────────────────────────────────────────────────
 
 _TOOL_FUNCTIONS = {
     "update_user_preference": update_user_preference,
     "manage_timer": manage_timer,
+    "camera_control": camera_control,
 }
 
 
@@ -394,6 +424,21 @@ def get_tool_declarations() -> list[types.Tool]:
                             "adjust_seconds": types.Schema(
                                 type="INTEGER",
                                 description="Seconds to add (positive) or subtract (negative). Required for 'adjust'.",
+                            ),
+                        },
+                        required=["action"],
+                    ),
+                ),
+                types.FunctionDeclaration(
+                    name="camera_control",
+                    description="Control the user's camera. Turn it on, off, or flip between front and back.",
+                    parameters=types.Schema(
+                        type="OBJECT",
+                        properties={
+                            "action": types.Schema(
+                                type="STRING",
+                                description="The camera action",
+                                enum=["on", "off", "flip"],
                             ),
                         },
                         required=["action"],
