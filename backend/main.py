@@ -35,7 +35,9 @@ from tools import (
 # ── Per-user state that survives WebSocket reconnects ──
 # Connection lifetime is ~10 min; handles are valid ~24 hours on Vertex.
 # Resume handles: stored by user_id so reconnecting clients resume with preserved context.
-_resume_handles: dict[str, str] = {}
+# Each entry is (handle_string, stored_timestamp) for age-based cleanup.
+_resume_handles: dict[str, tuple[str, float]] = {}
+_RESUME_HANDLE_MAX_AGE = 86_400  # 24 hours — Vertex handle validity
 # Saved preferences: keyed by user_id, persisted across Gemini crashes so allergies
 # aren't lost when the connection resets. Cleared on clean disconnect (user clicks Stop).
 _saved_preferences: dict[str, dict[str, str]] = {}
@@ -140,7 +142,8 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     tool_state = SessionToolState(event_queue)
 
     # Check for a stored resumption handle from a previous connection
-    resume_handle = _resume_handles.get(user_id)
+    stored = _resume_handles.get(user_id)
+    resume_handle = stored[0] if stored else None
     is_resuming = resume_handle is not None
 
     # Restore preferences from a previous session (survives Gemini crashes)
@@ -416,7 +419,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 update = response.session_resumption_update
                                 new_handle = getattr(update, 'new_handle', None)
                                 if new_handle:
-                                    _resume_handles[user_id] = new_handle
+                                    _resume_handles[user_id] = (new_handle, time.time())
+                                    # Prune handles older than 24 hours
+                                    now = time.time()
+                                    expired = [uid for uid, (_, ts) in _resume_handles.items()
+                                               if now - ts > _RESUME_HANDLE_MAX_AGE]
+                                    for uid in expired:
+                                        del _resume_handles[uid]
+                                    if expired:
+                                        slog.debug("Pruned %d expired resume handles", len(expired))
                                     slog.debug("Session resumption handle captured")
 
                             # ── GoAway: connection ending soon ──
