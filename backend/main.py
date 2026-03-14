@@ -282,6 +282,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 user_transcript: list[str] = []
                 mia_transcript: list[str] = []
                 last_user_transcription = ""  # latest complete user transcription
+                # Periodic system instruction updates — survives compression
+                REINFORCE_INTERVAL = 300  # 5 minutes
+                last_reinforce_time = time.time()
                 # Tool call buffering: collect calls for 300ms, then validate + execute
                 pending_tool_calls: list = []
                 tool_buffer_task: asyncio.Task | None = None
@@ -461,6 +464,42 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     await websocket.send_text(json.dumps({"interrupted": True}))
                                 except RuntimeError:
                                     pass
+
+                            # ── Periodic system instruction update (compression-proof) ──
+                            # System instructions survive compression (never discarded).
+                            # Re-inject preferences + timer state every 5 min so they persist
+                            # even after oldest conversation turns are trimmed.
+                            now = time.time()
+                            if now - last_reinforce_time > REINFORCE_INTERVAL:
+                                state_parts = []
+                                if tool_state.preferences:
+                                    pref_str = "; ".join(
+                                        f"{k}: {v}" for k, v in tool_state.preferences.items()
+                                    )
+                                    state_parts.append(f"User preferences: {pref_str}")
+                                active_timers = []
+                                for t in tool_state.active_timers.values():
+                                    remaining = max(0, int(t["duration_seconds"] - (now - t["set_at"]))) if not t.get("paused") else t.get("remaining_when_paused", 0)
+                                    active_timers.append((t["label"], remaining))
+                                if active_timers:
+                                    timer_str = ", ".join(f"{l} ({r}s)" for l, r in active_timers)
+                                    state_parts.append(f"Active timers: {timer_str}")
+                                if state_parts:
+                                    try:
+                                        await session.send_client_content(
+                                            turns=types.Content(
+                                                role="system",
+                                                parts=[types.Part(text=(
+                                                    f"[State update — {'. '.join(state_parts)}. "
+                                                    "Always respect allergies and dietary restrictions.]"
+                                                ))],
+                                            ),
+                                            turn_complete=False,
+                                        )
+                                        slog.info("System instruction update: %s", "; ".join(state_parts))
+                                    except Exception:
+                                        slog.debug("System instruction update failed (non-critical)")
+                                last_reinforce_time = now
 
                         slog.debug("session.receive() iterator ended after %d messages, re-entering", msg_count)
 
