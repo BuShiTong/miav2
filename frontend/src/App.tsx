@@ -292,7 +292,7 @@ function App() {
       startCamera(videoElementRef.current).then((result) => {
         setCameraStarting(false);
         if (result === "denied") {
-          setCameraError("Camera unavailable — using audio only");
+          setCameraError("No camera access - don't worry, Mia's a great listener even without eyes.");
           setVideoEnabled(false);
         } else {
           sendCameraState(true);
@@ -314,9 +314,9 @@ function App() {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (!res.ok) return { valid: false, error: 'Could not verify code. Try again.' };
+      if (!res.ok) return { valid: false, error: "Couldn't check that code - the server's on a coffee break. Try again?" };
       const data = await res.json();
-      if (!data.valid) return { valid: false, error: data.error || 'Invalid access code' };
+      if (!data.valid) return { valid: false, error: data.error || "Wrong code - Mia peeked through the peephole and didn't recognize you." };
       return { valid: true };
     } catch (err) {
       clearTimeout(timeout);
@@ -359,7 +359,7 @@ function App() {
       // Check code verification result — bail before opening WebSocket
       // so Vertex AI billing never starts for invalid codes.
       if (!codeResult.valid) {
-        setCodeError(codeResult.error || 'Invalid access code');
+        setCodeError(codeResult.error || "Wrong code - Mia peeked through the peephole and didn't recognize you.");
         stopMic();
         stopPlayback();
         return;

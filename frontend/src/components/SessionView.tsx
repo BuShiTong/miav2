@@ -85,7 +85,7 @@ export function SessionView({
       {/* Error / reconnecting banners */}
       {isReconnecting && (
         <div className="session-banner-flow session-banner--warning fade-in" role="alert">
-          Connection lost — trying to reconnect...
+          Connection dropped - someone probably tripped over a cable. Reconnecting...
         </div>
       )}
       {displayError && !isReconnecting && (

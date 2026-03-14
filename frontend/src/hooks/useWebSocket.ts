@@ -123,7 +123,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
       wsRef.current = null;
       // Server rejected the connection (e.g., invalid ID, policy violation)
       if (e.code === 1008) {
-        setError(e.reason || "Connection rejected by server.");
+        setError(e.reason || "The server said 'nope' - someone might've changed the locks.");
       }
       if (!isReconnectingRef.current) {
         setStatus("disconnected");

@@ -179,6 +179,9 @@ Tap camera toggle button during an active session.
 ## 30. Error Messages (was #28)
 - [ ] Stop the backend, try to connect → error message is playful (not generic)
 - [ ] Disconnect Wi-Fi, try to connect → different playful error
+- [ ] Enter wrong access code → "Wrong code - Mia peeked through the peephole..."
+- [ ] Block camera permission → "No camera access - don't worry, Mia's a great listener..."
+- [ ] Kill server mid-session → reconnecting banner is playful, not generic
 - [ ] Note the exact messages — are they fun and clear about what's wrong?
 
 ## 31. Context Window Compression

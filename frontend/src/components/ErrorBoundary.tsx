@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
               marginBottom: "var(--space-3)",
             }}
           >
-            Something went wrong
+            Well, that wasn't in the recipe...
           </h1>
           <p
             style={{
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               maxWidth: 360,
             }}
           >
-            The app hit an unexpected error. Reloading should fix it.
+            Mia crashed - probably tried to divide by zero again. Hit reload to get her back.
           </p>
           <button
             onClick={() => window.location.reload()}
