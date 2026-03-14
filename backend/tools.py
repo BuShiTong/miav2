@@ -83,6 +83,12 @@ def manage_timer(
     if action == "set":
         if duration_seconds <= 0:
             return {"error": "duration_seconds must be positive"}
+        # Dedup: if a timer with the same label was created within the last 10 seconds, skip
+        if label:
+            for existing_id, existing in state.active_timers.items():
+                if existing["label"].lower() == label.lower() and time.time() - existing["set_at"] < 10:
+                    logger.info("Timer dedup: '%s' already set %0.1fs ago (id=%s)", label, time.time() - existing["set_at"], existing_id)
+                    return {"status": "already set", "timer_id": existing_id, "label": label, "duration_seconds": existing["duration_seconds"]}
         tid = str(uuid.uuid4())[:8]
         state.active_timers[tid] = {
             "label": label,
