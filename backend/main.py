@@ -28,9 +28,7 @@ from google.genai import types
 from tools import (
     get_tool_declarations,
     dispatch_tool_call,
-    search_web,
     SessionToolState,
-    ASYNC_TOOLS,
     validate_tool_call,
 )
 
@@ -85,10 +83,9 @@ When no camera is active, you're audio only.
 You have tools available:
 - update_user_preference: Save user preferences (allergies, dietary restrictions, skill level, serving size).
 - manage_timer: Set, cancel, pause, resume, or adjust cooking timers.
-- search_web: Search the web for cooking facts, food safety info, recipes, or substitutions.
+You have built-in Google Search — use it when the user asks factual questions you're not 100% sure about (temperatures, substitutions, food safety, recipes). Be concise with search answers — include specific numbers.
 
 Only use tools when the user explicitly asks for something related to that tool.
-For search_web, say a brief filler like "let me check on that" before calling it.
 When multiple tool results come back, respond once covering everything.
 """
 
@@ -346,15 +343,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                                         slog.debug("VALIDATION PASSED: %s(%s) — %s", fc.name, fc.args, reason)
                                         t0 = time.monotonic()
-                                        if fc.name in ASYNC_TOOLS:
-                                            result = await search_web(
-                                                tool_state, **(fc.args or {}),
-                                                search_client=client,
-                                            )
-                                        else:
-                                            result = await asyncio.to_thread(
-                                                dispatch_tool_call, tool_state, fc.name, fc.args or {}
-                                            )
+                                        result = await asyncio.to_thread(
+                                            dispatch_tool_call, tool_state, fc.name, fc.args or {}
+                                        )
                                         elapsed_ms = (time.monotonic() - t0) * 1000
                                         slog.info("Tool result: %s → %s (%.1fms)", fc.name, result, elapsed_ms)
                                         func_responses.append(types.FunctionResponse(

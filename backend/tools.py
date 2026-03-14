@@ -1,26 +1,11 @@
 import asyncio
 import logging
-import os
 import re
 import uuid
 
-from google import genai
 from google.genai import types
 
 logger = logging.getLogger("mia.tools")
-
-# Cheap model for search — fast, low cost, no thinking
-SEARCH_MODEL = os.getenv("SEARCH_MODEL", "gemini-2.5-flash-lite")
-
-# System instruction for the search model — keeps answers clean for Mia to read aloud
-SEARCH_SYSTEM_INSTRUCTION = (
-    "You are a cooking assistant's research tool. Answer cooking-related questions accurately using search results.\n"
-    "Rules:\n"
-    "- Match your answer length to the question: short for simple facts, longer for recipes or explanations\n"
-    "- Include specific numbers when relevant (temperatures, times, quantities, ratios)\n"
-    "- For substitutions, give exact ratios (e.g., '1 cup buttermilk = 1 cup milk + 1 tbsp lemon juice')\n"
-    "- No disclaimers, greetings, or filler — just the answer"
-)
 
 
 # ── Validation keywords (for transcription-based tool call validation) ────
@@ -111,8 +96,8 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
                 return True, f"keyword '{kw}' found for action '{action}'"
         return False, f"no keyword for action '{action}' found in transcription"
 
-    # search_web and anything else: always allowed
-    return True, "tool always allowed"
+    # Unknown tool: allow (fail-open)
+    return True, "unknown tool — fail-open"
 
 
 # ── Per-session state ────────────────────────────────────────────
@@ -335,49 +320,12 @@ def manage_timer(
     return {"error": f"Unknown action: {action}"}
 
 
-# ── Search tool (async — calls cheap model with Google Search) ───
-
-
-async def search_web(state: SessionToolState, query: str, search_client: genai.Client) -> dict:
-    """Search the web using a cheap model with Google Search grounding."""
-    state.emit({"type": "search_started"})
-    try:
-        response = await search_client.aio.models.generate_content(
-            model=SEARCH_MODEL,
-            contents=query,
-            config=types.GenerateContentConfig(
-                system_instruction=SEARCH_SYSTEM_INSTRUCTION,
-                tools=[types.Tool(google_search=types.GoogleSearch())],
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-                temperature=0,
-                max_output_tokens=1500,
-            ),
-        )
-        answer = response.text or "No results found."
-        usage = response.usage_metadata
-        logger.info(
-            "Search complete: query=%s answer_len=%d input_tokens=%s output_tokens=%s",
-            query, len(answer),
-            getattr(usage, "prompt_token_count", "?"),
-            getattr(usage, "candidates_token_count", "?"),
-        )
-        state.emit({"type": "search_complete"})
-        return {"answer": answer}
-    except Exception as e:
-        logger.exception("Search failed: %s", query)
-        state.emit({"type": "search_complete"})
-        return {"answer": "Someone spilled coffee on the search servers. Here's what I know from memory:"}
-
-
 # ── Tool dispatch ────────────────────────────────────────────────
 
 _TOOL_FUNCTIONS = {
     "update_user_preference": update_user_preference,
     "manage_timer": manage_timer,
 }
-
-# search_web is async and handled separately in main.py
-ASYNC_TOOLS = {"search_web"}
 
 
 def dispatch_tool_call(state: SessionToolState, name: str, args: dict) -> dict:
@@ -451,20 +399,7 @@ def get_tool_declarations() -> list[types.Tool]:
                         required=["action"],
                     ),
                 ),
-                types.FunctionDeclaration(
-                    name="search_web",
-                    description="Search the web for cooking information, food safety facts, recipes, or ingredient substitutions. Use when the user asks a factual question you're not 100% sure about.",
-                    parameters=types.Schema(
-                        type="OBJECT",
-                        properties={
-                            "query": types.Schema(
-                                type="STRING",
-                                description="The search query (e.g. 'safe internal temperature for chicken breast')",
-                            ),
-                        },
-                        required=["query"],
-                    ),
-                ),
             ],
         ),
+        types.Tool(google_search=types.GoogleSearch()),
     ]
