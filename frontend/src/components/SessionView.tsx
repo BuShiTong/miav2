@@ -26,6 +26,7 @@ interface SessionViewProps {
   onStop: () => void;
   onFlipCamera: () => void;
   onToggleCamera: () => void;
+  cameraStarting: boolean;
   micRmsRef: MutableRefObject<number>;
   analyserRef: MutableRefObject<AnalyserNode | null>;
   isPlaying: boolean;
@@ -50,6 +51,7 @@ export function SessionView({
   onStop,
   onFlipCamera,
   onToggleCamera,
+  cameraStarting,
   micRmsRef,
   analyserRef,
   isPlaying,
@@ -99,6 +101,11 @@ export function SessionView({
               className="video-feed"
               aria-label="Camera feed"
             />
+            {cameraStarting && (
+              <div className="camera-card__loading">
+                <span>Starting camera...</span>
+              </div>
+            )}
             {/* Floating timers over camera top */}
             <div className="camera-card__overlay camera-card__overlay--top">
               <TimerOverlay timers={timers} />

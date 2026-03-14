@@ -59,6 +59,7 @@ function App() {
   const [isActive, setIsActive] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [accessCode, setAccessCode] = useState(() => sessionStorage.getItem('mia-access-code') || '');
   const [codeError, setCodeError] = useState('');
   const pendingCameraRef = useRef(false);
@@ -280,9 +281,12 @@ function App() {
   useEffect(() => {
     if (isActive && pendingCameraRef.current && videoElementRef.current) {
       pendingCameraRef.current = false;
+      setCameraStarting(true);
       startCamera(videoElementRef.current).then((result) => {
+        setCameraStarting(false);
         if (result === "denied") {
           setCameraError("Camera unavailable — using audio only");
+          setVideoEnabled(false);
         } else {
           sendCameraState(true);
         }
@@ -466,6 +470,7 @@ function App() {
           onStop={() => setDemoMode(false)}
           onFlipCamera={demo.onFlipCamera}
           onToggleCamera={() => {}}
+          cameraStarting={false}
           micRmsRef={demo.micRmsRef}
           analyserRef={demo.analyserRef}
           isPlaying={demo.isPlaying}
@@ -510,6 +515,7 @@ function App() {
         onStop={handleStop}
         onFlipCamera={flipCamera}
         onToggleCamera={handleToggleCamera}
+        cameraStarting={cameraStarting}
         micRmsRef={micRmsRef}
         analyserRef={analyserRef}
         isPlaying={isPlaying}
