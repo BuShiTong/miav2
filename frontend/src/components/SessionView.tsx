@@ -73,8 +73,8 @@ export function SessionView({
         />
       </header>
 
-      {/* Timers — top priority, right below header */}
-      <TimerOverlay timers={timers} />
+      {/* Timers in normal flow (audio mode only) */}
+      {!videoEnabled && <TimerOverlay timers={timers} />}
 
       {/* Error / reconnecting banners */}
       {isReconnecting && (
@@ -91,7 +91,7 @@ export function SessionView({
       {/* Main area — visualizer or camera */}
       <div className="session-main">
         {videoEnabled ? (
-          <div className="camera-card">
+          <div className={`camera-card camera-card--${buttonState}`}>
             <video
               ref={videoRef}
               muted
@@ -99,6 +99,14 @@ export function SessionView({
               className="video-feed"
               aria-label="Camera feed"
             />
+            {/* Floating timers over camera top */}
+            <div className="camera-card__overlay camera-card__overlay--top">
+              <TimerOverlay timers={timers} />
+            </div>
+            {/* Floating prefs over camera bottom */}
+            <div className="camera-card__overlay camera-card__overlay--bottom">
+              <OverlayChips preferences={preferences} />
+            </div>
           </div>
         ) : (
           <div className="audio-viz" data-state={buttonState}>
@@ -126,8 +134,8 @@ export function SessionView({
         />
       )}
 
-      {/* Preferences — low priority, above footer */}
-      <OverlayChips preferences={preferences} />
+      {/* Preferences in normal flow (audio mode only) */}
+      {!videoEnabled && <OverlayChips preferences={preferences} />}
 
       {/* Footer — camera toggle + stop + flip */}
       <div className="session-footer">
@@ -137,7 +145,6 @@ export function SessionView({
           aria-label={videoEnabled ? "Turn off camera" : "Turn on camera"}
         >
           {videoEnabled ? (
-            // Camera-off icon
             <svg
               width="22"
               height="22"
@@ -154,7 +161,6 @@ export function SessionView({
               <path d="M15 11a3 3 0 0 0-5.94-.6" />
             </svg>
           ) : (
-            // Camera icon
             <svg
               width="22"
               height="22"
