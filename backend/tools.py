@@ -39,8 +39,33 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
     """Validate a tool call against the user's transcription.
 
     Returns (allowed: bool, reason: str).
-    Fail-open: if transcription is empty, allow the call.
+    Fail-open: if transcription is empty, allow the call (except camera_control).
+    camera_control is always strict — the user must explicitly ask for it.
     """
+    # Camera control: always strict, never fail-open.
+    # Prevents Gemini from hallucinating camera-on at session start.
+    if name == "camera_control":
+        action = (args.get("action") or "").lower()
+        if not transcription or not transcription.strip():
+            return False, f"camera_control('{action}') requires explicit user request (no transcription)"
+        text = transcription.lower()
+        if action == "on":
+            keywords = ["turn on camera", "enable camera", "start camera",
+                        "open camera", "turn on the camera", "start the camera"]
+        elif action == "off":
+            keywords = ["turn off camera", "disable camera", "stop camera",
+                        "close camera", "turn off the camera", "stop the camera"]
+        elif action == "flip":
+            keywords = ["flip camera", "switch camera", "front camera",
+                        "back camera", "rear camera", "selfie camera",
+                        "flip the camera", "switch the camera"]
+        else:
+            return False, f"unknown camera action '{action}' — rejected"
+        for kw in keywords:
+            if kw in text:
+                return True, f"keyword '{kw}' found for camera action '{action}'"
+        return False, f"no keyword for camera action '{action}'"
+
     if not transcription or not transcription.strip():
         return True, "fail-open (no transcription)"
 
@@ -95,25 +120,6 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
             if re.search(r'\b' + re.escape(kw) + r'\b', text):
                 return True, f"keyword '{kw}' found for action '{action}'"
         return False, f"no keyword for action '{action}' found in transcription"
-
-    if name == "camera_control":
-        action = (args.get("action") or "").lower()
-        if action == "on":
-            keywords = ["turn on camera", "enable camera", "start camera",
-                        "open camera", "turn on the camera", "start the camera"]
-        elif action == "off":
-            keywords = ["turn off camera", "disable camera", "stop camera",
-                        "close camera", "turn off the camera", "stop the camera"]
-        elif action == "flip":
-            keywords = ["flip camera", "switch camera", "front camera",
-                        "back camera", "rear camera", "selfie camera",
-                        "flip the camera", "switch the camera"]
-        else:
-            return True, "unknown camera action — fail-open"
-        for kw in keywords:
-            if kw in text:
-                return True, f"keyword '{kw}' found for camera action '{action}'"
-        return False, f"no keyword for camera action '{action}'"
 
     # Unknown tool: allow (fail-open)
     return True, "unknown tool — fail-open"
