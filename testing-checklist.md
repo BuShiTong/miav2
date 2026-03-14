@@ -46,11 +46,11 @@ Share the log file from `backend/logs/` after testing.
 - [x] Say: "Cancel the garlic timer" → timer disappears, Mia confirms
 - [x] Say: "Cancel the chicken timer" (doesn't exist) → Mia says not found, no crash
 
-## 8. Timers — Status & Expiry
-- [ ] Say: "How much time is left?" → Mia reports all active timers
+## 8. Timers — Expiry
 - [x] Let timer reach zero → 3 beeps, phone vibrates, Mia announces it's done
 - [x] Timer auto-removes from screen after ~10 seconds
 - [x] Say: "Pause the pasta timer" after it expired → Mia says not found, no crash
+- [ ] Say: "Set a timer" (no label) → Mia asks what it's for (label required)
 
 ## 9. Timers — Label Lookup
 - [ ] Two timers running (pasta + rice). Say: "Pause the rice timer" → correct one pauses
@@ -73,10 +73,11 @@ Share the log file from `backend/logs/` after testing.
 - [ ] While Mia is talking, clap/tap counter → Mia keeps talking (noise doesn't interrupt)
 - [ ] While Mia is talking, say clearly: "Hold on a second" → Mia stops
 
-## 13. Audio Gate
-- [ ] Say: "I'm allergic to dairy" → SILENCE between your request and Mia's confirmation (no narration)
-- [ ] Say: "Set a 1-minute timer for eggs" → same: silence during tool execution
-- [ ] Check log: "Audio gate ACTIVATED" + "Audio gate DEACTIVATED (dropped X chunks)" present
+## 13. Tool Call Validation
+- [ ] Say: "I'd like to make pasta" (no preference mentioned) → Mia does NOT save any preference. Check log for "VALIDATION REJECTED"
+- [ ] Say: "Tell me about chicken" without asking for a timer → Mia does NOT set/pause/resume any timer
+- [ ] Say: "I'm allergic to nuts" → preference saved. Check log for "VALIDATION PASSED"
+- [ ] Check log: tool calls show VALIDATION PASSED or VALIDATION REJECTED with reason
 
 ## 14. Affective Dialog (Vertex Feature)
 - [ ] Say enthusiastically: "Oh my god, this smells AMAZING!" → does Mia sound upbeat?
@@ -118,9 +119,9 @@ Share the log file from `backend/logs/` after testing.
 Open latest file in `backend/logs/`:
 - [ ] "User:" and "Mia:" lines match the conversation
 - [ ] "Tool call received:" for each tool used
-- [ ] "Tool result:" with success and timing
-- [ ] "Audio gate ACTIVATED" / "DEACTIVATED" present
-- [ ] Each tool call has exactly one "Mia:" response after it
+- [ ] "VALIDATION PASSED" or "VALIDATION REJECTED" for each tool call
+- [ ] "Tool result:" with success and timing for passed calls
+- [ ] Tool responses sent in batches (e.g. "Tool responses sent (2)")
 - [ ] No ERROR lines or stack traces
 
 ---
@@ -136,12 +137,12 @@ Open latest file in `backend/logs/`:
 | 5 | Timers — Pause & Resume | | | |
 | 6 | Timers — Adjust | | | |
 | 7 | Timers — Cancel | | | |
-| 8 | Timers — Status & Expiry | | | |
+| 8 | Timers — Expiry | | | |
 | 9 | Timers — Label Lookup | | | |
 | 10 | Google Search | | | |
 | 11 | Multiple Tools | | | |
 | 12 | Barge-In | | | |
-| 13 | Audio Gate | | | |
+| 13 | Tool Call Validation | | | |
 | 14 | Affective Dialog | | | |
 | 15 | Session Stability | | | |
 | 16 | Stop & Restart | | | |

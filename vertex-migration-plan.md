@@ -1,5 +1,26 @@
 # Vertex AI Migration Plan
 
+## Final Outcome (March 2026)
+
+Migration is **complete**. The audio gate approach (Strategy #1 below) was implemented, tested across 3 sessions, and **removed** — it caused garbled speech fragments worse than the double-talk it was meant to prevent (see Decision #26).
+
+**What's actually in production:**
+- Server-side tool call validation (checks calls against user transcription before executing)
+- Tool call buffering (300ms, batches calls + enables validation)
+- Timer deduplication (prevents duplicate timers from model double-firing)
+- Simplified system prompt (one line: "Only use tools when user explicitly asks")
+- Timer status action removed (never accurate), timer labels required (prevent invisible timers)
+- "SILENT EXECUTION" removed from tool descriptions (confused the model)
+
+**What was abandoned:**
+- Audio gate (all variants: boolean, 4-state machine) — caused garbled fragments
+- Verbose tool behavior rules in system prompt — model ignored them ~67% of the time
+- Tool response batching (model sends calls sequentially, can't batch)
+
+The research below is preserved as reference for what was investigated and why.
+
+---
+
 ## The Problem
 
 On Vertex AI's native audio model (`gemini-live-2.5-flash-native-audio`), the model continues generating audio after emitting a function call instead of pausing. This causes:

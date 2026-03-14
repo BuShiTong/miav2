@@ -150,7 +150,7 @@ This is a reference document, not an implementation plan. It covers every workar
 
 ## 9. PRE-WARM GREETING (backend/main.py)
 
-**What it does:** When a session starts, the backend sends a fake "user message" that says `[Session started — greet the user and ask what they're cooking]`. This makes the AI speak first.
+**What it does:** When a session starts, the backend sends a fake "user message" that says `[Session started]`. This makes the AI speak first.
 
 **When it triggers:** Once at session start.
 
