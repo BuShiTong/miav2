@@ -716,6 +716,12 @@ body {
   color: var(--s-danger);
 }
 
+.session-banner--preview {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #818cf8;
+}
+
 /* --- Session Footer --- */
 
 .session-footer {
@@ -992,6 +998,16 @@ body {
   cursor: not-allowed;
   opacity: 0.6;
   animation: none;
+}
+
+.start-btn--preview {
+  background: transparent;
+  border: 1px solid var(--w-border, rgba(255, 255, 255, 0.15));
+  color: var(--w-text-muted, #94a3b8);
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  animation: none;
+  margin-top: var(--space-2, 8px);
 }
 
 .welcome-hint {

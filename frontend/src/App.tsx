@@ -11,6 +11,7 @@ import { createLogger } from "./lib/logger";
 import { playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/uiSounds";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { SessionView } from "./components/SessionView";
+import { useDemoSession } from "./hooks/useDemoSession";
 
 const log = createLogger("App");
 
@@ -46,7 +47,12 @@ export type ButtonState =
   | "searching"
   | "processing";
 
+const isPreviewAvailable = new URLSearchParams(window.location.search).has("preview");
+
 function App() {
+  const [demoMode, setDemoMode] = useState(false);
+  const demo = useDemoSession();
+
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -410,6 +416,38 @@ function App() {
 
   // ── Render ─────────────────────────────────────────────────────
 
+  if (demoMode) {
+    return (
+      <div className="page-enter" key="demo">
+        <div className="session-banner-flow session-banner--preview fade-in" role="status">
+          Preview Mode — no backend connected
+        </div>
+        <SessionView
+          videoRef={videoElementRef}
+          videoEnabled={false}
+          buttonState={demo.buttonState}
+          voiceRingClass={demo.voiceRingClass}
+          buttonLabel={demo.buttonLabel}
+          srAnnouncement={demo.srAnnouncement}
+          isConnected={demo.isConnected}
+          isConnecting={demo.isConnecting}
+          isReconnecting={demo.isReconnecting}
+          isSearching={demo.isSearching}
+          timers={demo.timers}
+          preferences={demo.preferences}
+          micError={demo.micError}
+          cameraError={demo.cameraError}
+          wsError={demo.wsError}
+          onStop={() => setDemoMode(false)}
+          onFlipCamera={demo.onFlipCamera}
+          micRmsRef={demo.micRmsRef}
+          analyserRef={demo.analyserRef}
+          isPlaying={demo.isPlaying}
+        />
+      </div>
+    );
+  }
+
   if (!isActive) {
     return (
       <div className="page-enter" key="welcome">
@@ -421,6 +459,7 @@ function App() {
           accessCode={accessCode}
           onAccessCodeChange={handleAccessCodeChange}
           codeError={codeError}
+          onPreview={isPreviewAvailable ? () => setDemoMode(true) : undefined}
         />
       </div>
     );
