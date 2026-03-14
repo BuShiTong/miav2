@@ -152,7 +152,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
         ),
         # Vertex AI-only features (rejected on AI Studio, accepted on Vertex)
         enable_affective_dialog=True,
-        proactivity=types.ProactivityConfig(proactive_audio=True),
     )
 
     try:
@@ -163,7 +162,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
             await session.send_client_content(
                 turns=types.Content(
                     role="user",
-                    parts=[types.Part(text="Hello")],
+                    parts=[types.Part(text="[Session started — greet the user and ask what they're cooking]")],
                 ),
                 turn_complete=True,
             )
