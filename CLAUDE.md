@@ -10,6 +10,10 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - Server-side tool call validation layer (prevents hallucinated preferences and autonomous actions)
 - Tool call buffering (300ms, batches multiple calls)
 - Timer deduplication (prevents duplicate timers)
+- Context window compression (100K trigger, 80K target — prevents token overflow in long sessions)
+- Session resumption (preserves context across ~10 min connection resets, handles valid ~24h)
+- Periodic system instruction updates (compression-proof state: allergies + timers survive trimming)
+- GoAway handling (60s warning before connection terminates)
 
 ## Known Limitation
 

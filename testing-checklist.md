@@ -161,6 +161,24 @@ Switch to "Audio + Video" mode for these tests.
 - [ ] Disconnect Wi-Fi, try to connect → different playful error
 - [ ] Note the exact messages — are they fun and clear about what's wrong?
 
+## 29. Context Window Compression (NEW)
+- [ ] Start audio-only session, talk for 5+ min → no crashes, session remains stable
+- [ ] Start camera session, keep camera on 5+ min → no crashes (previously would overflow)
+- [ ] Check log: "compression=trigger@100k/target@80k" appears on session start
+
+## 30. Session Resumption (NEW)
+- [ ] Start a session, talk for a minute, then wait ~10 min for GoAway
+- [ ] Check log: "GoAway received" and "Session resumption handle captured" appear
+- [ ] After reconnect: ask Mia about something from the earlier conversation → she remembers
+- [ ] Check log: "resuming=True" on the reconnected session, "Resumed session — skipping greeting"
+- [ ] Fresh start (click Stop then Start): Mia greets normally (not resuming)
+
+## 31. System Instruction Updates (NEW)
+- [ ] Set a preference ("I'm allergic to nuts"), then wait 5 min
+- [ ] Check log: "System instruction update: User preferences: allergies: nuts" appears
+- [ ] Set a timer, wait 5 min → log shows timer state in system instruction update
+- [ ] After long session (10+ min): ask about allergies → Mia still knows (system instruction survived compression)
+
 ---
 
 ## Scorecard
@@ -195,3 +213,6 @@ Switch to "Audio + Video" mode for these tests.
 | 26 | Duration Formatting | | | |
 | 27 | Camera Vision | | | |
 | 28 | Error Messages | | | |
+| 29 | Context Window Compression | | | |
+| 30 | Session Resumption | | | |
+| 31 | System Instruction Updates | | | |
