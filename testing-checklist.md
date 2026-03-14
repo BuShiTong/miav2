@@ -179,6 +179,17 @@ Switch to "Audio + Video" mode for these tests.
 - [ ] Set a timer, wait 5 min → log shows timer state in system instruction update
 - [ ] After long session (10+ min): ask about allergies → Mia still knows (system instruction survived compression)
 
+## 32. Preference Persistence Across Crashes (NEW)
+Tests that allergies survive Gemini connection resets.
+- [ ] Say "I'm allergic to nuts" → chip appears, check log for "Preference context injected"
+- [ ] Wait for GoAway/reconnect (or stop backend briefly to force reconnect)
+- [ ] After reconnect → check log: "Restored N preferences" with allergy data
+- [ ] Preference chips should reappear on frontend after reconnect
+- [ ] Next periodic system instruction update (5 min) should include restored allergies
+- [ ] Click Stop → Start new session → preferences should be gone
+- [ ] Check log: "Clean disconnect — cleared saved state" on Stop
+- [ ] Fresh start: no "Restored preferences" log line
+
 ---
 
 ## Scorecard
@@ -216,3 +227,4 @@ Switch to "Audio + Video" mode for these tests.
 | 29 | Context Window Compression | | | |
 | 30 | Session Resumption | | | |
 | 31 | System Instruction Updates | | | |
+| 32 | Preference Persistence Across Crashes | | | |

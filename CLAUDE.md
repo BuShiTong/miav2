@@ -16,6 +16,8 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - Session resumption (preserves context across ~10 min connection resets, handles valid ~24h)
 - Periodic system instruction updates (compression-proof state: allergies + timers survive trimming)
 - GoAway handling (60s warning before connection terminates)
+- Preference persistence across crashes (allergies survive Gemini reconnects, cleared on clean Stop)
+- Resume token cleanup (24h expiry, prevents unbounded memory growth)
 
 ## Known Limitation
 
