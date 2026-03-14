@@ -1,0 +1,16 @@
+{
+  "name": "Mia — AI Cooking Assistant",
+  "short_name": "Mia",
+  "description": "Real-time voice cooking assistant powered by Gemini",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9F9F6",
+  "theme_color": "#F9F9F6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
