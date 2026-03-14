@@ -230,7 +230,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 )
                             )
                             audio_count += 1
-                            if audio_count % 50 == 1:
+                            if audio_count % 125 == 1:
                                 slog.debug("Upstream: audio chunk #%d (%d bytes)", audio_count, len(audio_bytes))
 
                         elif msg_type == "image":

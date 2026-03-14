@@ -4,13 +4,13 @@ import { createLogger } from "../lib/logger";
 const log = createLogger("AudioCapture");
 
 // Speech detection constants
-// Capture worklet now sends 1600-sample chunks (~100ms at 16kHz).
+// Capture worklet sends 640-sample chunks (~40ms at 16kHz), ~25 chunks/sec.
 // Frame timing constants are calibrated for this chunk size.
 const MIN_RMS_THRESHOLD = 0.015; // Absolute floor — calibrated for echoCancellation:false (see problems-solved.md #7)
 const BARGE_IN_MULTIPLIER = 3.0; // Speech must be 3x louder than echo baseline
-const BASELINE_ALPHA = 0.05; // EMA smoothing (slow adaptation, stable baseline)
-const SPEECH_FRAMES_REQUIRED = 1; // ~100ms sustained speech before triggering (was 4 at 128-sample chunks)
-const SILENCE_FRAMES_REQUIRED = 2; // ~200ms silence before allowing re-trigger (was 8 at 128-sample chunks)
+const BASELINE_ALPHA = 0.02; // EMA smoothing — preserves ~2s time constant at 25 chunks/sec (was 0.05 at 10/sec)
+const SPEECH_FRAMES_REQUIRED = 3; // ~120ms sustained speech before triggering (3 × 40ms)
+const SILENCE_FRAMES_REQUIRED = 5; // ~200ms silence before allowing re-trigger (5 × 40ms)
 const AI_PLAYING_WINDOW_MS = 500; // AI "playing" if heartbeat/audio arrived within this window
 
 /** Convert Float32 [-1, 1] samples to Int16 PCM bytes, then base64. */
@@ -178,8 +178,8 @@ export function useAudioCapture({
             }
           }
 
-          // Observability: log RMS + peak + baseline every ~10 frames (~1s at 1600-sample chunks)
-          if (chunkCountRef.current % 10 === 0) {
+          // Observability: log RMS + peak + baseline every ~25 frames (~1s at 640-sample chunks)
+          if (chunkCountRef.current % 25 === 0) {
             log.debug("Speech detection (AI playing)", {
               rms: rms.toFixed(4),
               peakRms: peakRmsRef.current.toFixed(4),
@@ -195,7 +195,7 @@ export function useAudioCapture({
           speechTriggeredRef.current = false;
 
           // Log RMS during non-AI periods to see user speech levels
-          if (chunkCountRef.current % 10 === 0) {
+          if (chunkCountRef.current % 25 === 0) {
             log.debug("Mic RMS (AI silent)", {
               rms: rms.toFixed(4),
               peakRms: peakRmsRef.current.toFixed(4),
@@ -204,7 +204,7 @@ export function useAudioCapture({
           }
         }
 
-        if (chunkCountRef.current % 10 === 0) {
+        if (chunkCountRef.current % 25 === 0) {
           log.debug(`Captured ${chunkCountRef.current} audio chunks`);
         }
       };

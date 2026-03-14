@@ -1,12 +1,12 @@
 /**
  * AudioWorklet processor for microphone capture.
- * Buffers 1600 samples (~100ms at 16kHz) before posting to main thread.
- * ADK recommends 50-100ms chunks — this reduces WebSocket messages from ~125/sec to ~10/sec.
+ * Buffers 640 samples (~40ms at 16kHz) before posting to main thread.
+ * Vertex best practices recommend 20-40ms chunks — this gives ~25 messages/sec.
  */
 class CaptureProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.buffer = new Float32Array(1600); // 100ms at 16kHz
+    this.buffer = new Float32Array(640); // 40ms at 16kHz
     this.offset = 0;
   }
 
