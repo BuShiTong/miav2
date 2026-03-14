@@ -400,6 +400,7 @@ body {
   background: #000;
   box-shadow: 0 4px 20px rgba(28, 42, 33, 0.08);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  animation: fadeInUp 0.15s ease-out both;
 }
 
 .camera-card .video-feed {
@@ -437,6 +438,16 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   pointer-events: auto;
+}
+
+/* Auto-fade preference chips over camera after 3s */
+.camera-card__overlay--bottom .pref-row {
+  animation: chipAutoFade 3s ease-out forwards;
+}
+
+@keyframes chipAutoFade {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0.3; }
 }
 
 /* Camera loading overlay */
@@ -530,6 +541,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: fadeInUp 0.15s ease-out both;
 }
 
 .audio-viz__ring {

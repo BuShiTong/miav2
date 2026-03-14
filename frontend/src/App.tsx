@@ -425,6 +425,7 @@ function App() {
     if (isTogglingCameraRef.current) return;
     isTogglingCameraRef.current = true;
 
+    vibrate(40);
     try {
       if (videoEnabled) {
         // Turn OFF

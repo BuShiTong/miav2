@@ -99,8 +99,8 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
 
   const start = useCallback(
     async (videoElement: HTMLVideoElement): Promise<"granted" | "denied"> => {
-      facingModeRef.current = "environment";
-      return startCapture(videoElement, "environment");
+      facingModeRef.current = "user";
+      return startCapture(videoElement, "user");
     },
     [startCapture]
   );
