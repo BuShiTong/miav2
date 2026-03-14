@@ -128,6 +128,23 @@ async def frontend_logs():
     return {"ok": True}
 
 
+# ── WebSocket send helper ──────────────────────────────────
+
+WS_SEND_TIMEOUT = 5.0  # seconds — prevents zombie connections from blocking tasks
+
+
+async def _safe_send(ws: WebSocket, data: dict, slog: logging.Logger) -> bool:
+    """Send JSON to WebSocket with timeout. Returns False if send failed (dead client)."""
+    try:
+        await asyncio.wait_for(ws.send_text(json.dumps(data)), timeout=WS_SEND_TIMEOUT)
+        return True
+    except asyncio.TimeoutError:
+        slog.warning("WebSocket send timed out (%.1fs) — client likely dead", WS_SEND_TIMEOUT)
+        return False
+    except (RuntimeError, WebSocketDisconnect):
+        return False
+
+
 # ── WebSocket endpoint ──────────────────────────────────────
 
 @app.websocket("/ws/{user_id}/{session_id}")
@@ -322,11 +339,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                             if not ready_sent:
                                 ready_sent = True
-                                try:
-                                    await websocket.send_text(json.dumps({"type": "ready"}))
-                                    slog.info("Ready signal sent")
-                                except RuntimeError:
-                                    pass
+                                if not await _safe_send(websocket, {"type": "ready"}, slog):
+                                    break
+                                slog.info("Ready signal sent")
 
                             # ── Tool calls (buffered + validated) ──
                             if response.tool_call:
@@ -442,11 +457,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                             # ── Audio data ──
                             sc = response.server_content
+                            client_dead = False
                             if sc and sc.model_turn and sc.model_turn.parts:
                                 for part in sc.model_turn.parts:
                                     if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("audio/"):
                                         audio_b64 = base64.b64encode(part.inline_data.data).decode("ascii")
-                                        await websocket.send_text(json.dumps({
+                                        if not await _safe_send(websocket, {
                                             "content": {
                                                 "parts": [{
                                                     "inline_data": {
@@ -455,7 +471,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                                     }
                                                 }]
                                             }
-                                        }))
+                                        }, slog):
+                                            client_dead = True
+                                            break
+                            if client_dead:
+                                break
 
                             # Accumulate transcriptions (eagerly update for validation)
                             if sc and sc.input_transcription and sc.input_transcription.text:
@@ -486,10 +506,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     slog.info("Mia: %s (interrupted)", "".join(mia_transcript))
                                     mia_transcript.clear()
                                 slog.debug("Interrupted (msg #%d)", msg_count)
-                                try:
-                                    await websocket.send_text(json.dumps({"interrupted": True}))
-                                except RuntimeError:
-                                    pass
+                                await _safe_send(websocket, {"interrupted": True}, slog)
 
                             # ── Periodic system instruction update (compression-proof) ──
                             # System instructions survive compression (never discarded).
@@ -530,30 +547,22 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                         slog.debug("session.receive() iterator ended after %d messages, re-entering", msg_count)
 
                     # If we broke out due to max re-entries, notify frontend
-                    try:
-                        await websocket.send_text(json.dumps({"type": "gemini_disconnected"}))
-                    except Exception:
-                        pass
+                    await _safe_send(websocket, {"type": "gemini_disconnected"}, slog)
 
                 except WebSocketDisconnect:
                     slog.info("Client disconnected (downstream)")
                 except Exception:
                     slog.exception("Downstream error")
-                    try:
-                        await websocket.send_text(json.dumps({"type": "gemini_disconnected"}))
-                    except Exception:
-                        pass
+                    await _safe_send(websocket, {"type": "gemini_disconnected"}, slog)
 
             async def event_forwarder():
                 """Forward tool events (timer_set, preference_updated, etc.) to the browser."""
                 try:
                     while True:
                         event = await event_queue.get()
-                        try:
-                            await websocket.send_text(json.dumps(event))
-                            slog.debug("Event forwarded: %s", event.get("type"))
-                        except RuntimeError:
+                        if not await _safe_send(websocket, event, slog):
                             break
+                        slog.debug("Event forwarded: %s", event.get("type"))
                 except asyncio.CancelledError:
                     pass
                 except Exception:

@@ -481,6 +481,23 @@ This is a reference document, not an implementation plan. It covers every workar
 
 ---
 
+## 29. WEBSOCKET SEND TIMEOUT — 5 SECONDS (backend/main.py)
+
+**What it does:** Every WebSocket send to the browser is wrapped in a 5-second timeout via the `_safe_send()` helper. If a send takes longer than 5 seconds (meaning the client stopped reading), the helper returns `False` and the calling loop breaks, triggering session cleanup.
+
+**When it triggers:** Every WebSocket send — audio data, ready signal, interruption signal, event forwarding, disconnect notifications. All go through `_safe_send()`.
+
+**Why it exists:** If a browser tab crashes or the network dies without a clean WebSocket close, `websocket.send_text()` blocks indefinitely because the TCP buffer fills up and nobody is reading. This ties up the Gemini Live session (which has a ~10 min limit) doing nothing — wasting the session slot and preventing cleanup.
+
+**Tradeoffs:**
+- **Good:** Dead connections cleaned up within 5 seconds instead of hanging forever
+- **Good:** Single helper function — all timeout logic in one place
+- **Bad:** None observed. 5 seconds is extremely generous for a local WebSocket send (normal sends complete in <1ms)
+
+**If you remove it:** Browser crashes or network deaths without clean WebSocket close will hang the server-side tasks indefinitely until the Gemini session's ~10 min lifetime expires naturally.
+
+---
+
 ## Summary Table
 
 | # | Mechanism | Needed? | What breaks without it |
@@ -513,6 +530,7 @@ This is a reference document, not an implementation plan. It covers every workar
 | 26 | Timer beep + haptics | Essential for UX | Silent timer expiry |
 | 27 | URL-safe base64 | Essential | Audio completely broken |
 | 28 | Tab visibility handling | Essential | Audio dies on tab switch |
+| 29 | WebSocket send timeout | Recommended | Dead clients hang server tasks indefinitely |
 
 ---
 

@@ -190,6 +190,13 @@ Tests that allergies survive Gemini connection resets.
 - [ ] Check log: "Clean disconnect — cleared saved state" on Stop
 - [ ] Fresh start: no "Restored preferences" log line
 
+## 33. WebSocket Send Timeout (NEW)
+Tests that dead client connections are cleaned up instead of hanging.
+- [ ] Normal session works identically — no timeout warnings in log during healthy conversation
+- [ ] Kill browser tab mid-conversation (Task Manager or close tab) → check backend log: "WebSocket send timed out" appears within 5 seconds
+- [ ] After timeout: backend session ends cleanly (no hanging processes)
+- [ ] Rapid audio playback (continuous Mia speaking) → no timeout warnings (healthy sends complete well under 5s)
+
 ---
 
 ## Scorecard
