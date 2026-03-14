@@ -17,17 +17,23 @@ export interface PreferenceEvent {
   value: string;
 }
 
+export interface CameraEvent {
+  type: "camera_control";
+  action: "on" | "off" | "flip";
+}
+
 interface UseWebSocketOptions {
   onAudioData: (pcmBase64: string) => void;
   onInterrupted: () => void;
   onTimerEvent?: (event: { type: string; [key: string]: unknown }) => void;
   onSearchEvent?: (event: SearchEvent) => void;
   onPreferenceEvent?: (event: PreferenceEvent) => void;
+  onCameraEvent?: (event: CameraEvent) => void;
   onProcessing?: () => void;
   onReady?: () => void;
 }
 
-export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onProcessing, onReady }: UseWebSocketOptions) {
+export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [error, setError] = useState<string | null>(null);
@@ -209,6 +215,13 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
           return;
         }
 
+        // Camera control events from backend (voice-triggered)
+        if (typeof msg.type === "string" && msg.type === "camera_control") {
+          log.info("Camera event", { action: msg.action });
+          onCameraEvent?.(msg as CameraEvent);
+          return;
+        }
+
         const adkEvent = msg;
 
         // Log event structure (keys only, never full audio data)
@@ -293,7 +306,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
         });
       }
     };
-  }, [onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onProcessing, onReady]);
+  }, [onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady]);
   connectRef.current = connect;
 
   const disconnect = useCallback(() => {

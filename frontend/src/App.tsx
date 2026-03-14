@@ -6,7 +6,7 @@ import { useSearch } from "./hooks/useSearch";
 import { useTimers, type TimerEvent } from "./hooks/useTimers";
 import { useVideoCapture } from "./hooks/useVideoCapture";
 import { useWakeLock } from "./hooks/useWakeLock";
-import { useWebSocket } from "./hooks/useWebSocket";
+import { useWebSocket, type CameraEvent } from "./hooks/useWebSocket";
 import { createLogger } from "./lib/logger";
 import { playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/uiSounds";
 import { WelcomeScreen } from "./components/WelcomeScreen";
@@ -155,6 +155,12 @@ function App() {
     playConnectSound();
   }, []);
 
+  // Camera event ref — assigned after handleToggleCamera is defined
+  const handleCameraEventRef = useRef<(event: CameraEvent) => void>(() => {});
+  const onCameraEvent = useCallback((event: CameraEvent) => {
+    handleCameraEventRef.current(event);
+  }, []);
+
   const {
     status,
     error: wsError,
@@ -171,6 +177,7 @@ function App() {
     onTimerEvent,
     onSearchEvent: handleSearchEvent,
     onPreferenceEvent: handlePreferenceEvent,
+    onCameraEvent,
     onProcessing: handleProcessing,
     onReady: handleReady,
   });
@@ -441,6 +448,13 @@ function App() {
       isTogglingCameraRef.current = false;
     }
   }, [videoEnabled, stopCamera, sendCameraState]);
+
+  // Wire up voice-triggered camera control (ref avoids circular dependency with useWebSocket)
+  handleCameraEventRef.current = (event: CameraEvent) => {
+    if (event.action === "on" && !videoEnabled) handleToggleCamera();
+    else if (event.action === "off" && videoEnabled) handleToggleCamera();
+    else if (event.action === "flip" && videoEnabled) flipCamera();
+  };
 
   const visibleTimers = timers.filter((t) => !t.hidden);
 
