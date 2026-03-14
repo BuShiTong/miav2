@@ -208,6 +208,9 @@ Tests that dead client connections are cleaned up instead of hanging.
 - [ ] (Advanced) Connect with malicious user_id containing `../` or newlines → connection closed with 1008
 - [ ] (Advanced) Connect with 200-character ID → connection closed with 1008
 
+## 36. Pre-Deployment Cleanup (NEW)
+- [ ] Remove `[DEBUG] Google Search grounding detection` block from `main.py` (search for `[SEARCH]`)
+
 ---
 
 ## Scorecard
@@ -249,3 +252,4 @@ Tests that dead client connections are cleaned up instead of hanging.
 | 33 | WebSocket Send Timeout | | | |
 | 34 | Health Endpoint | | | |
 | 35 | WebSocket ID Validation | | | |
+| 36 | Pre-Deployment Cleanup | | | |

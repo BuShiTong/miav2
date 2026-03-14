@@ -20,6 +20,7 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - Resume token cleanup (24h expiry, prevents unbounded memory growth)
 - Health endpoint (`GET /health` — liveness probe)
 - WebSocket ID validation (regex + length cap — prevents log injection)
+- **[DEBUG]** Google Search grounding metadata logging (`[SEARCH]` prefix in session logs — remove before deploy, see Decision #51)
 
 ## Known Limitation
 

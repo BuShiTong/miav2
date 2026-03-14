@@ -510,6 +510,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
 
+                            # ── [DEBUG] Google Search grounding detection (remove before deploy) ──
+                            if sc and sc.grounding_metadata:
+                                gm = sc.grounding_metadata
+                                queries = getattr(gm, "web_search_queries", None)
+                                chunks = getattr(gm, "grounding_chunks", None)
+                                supports = getattr(gm, "grounding_supports", None)
+                                slog.info(
+                                    "[SEARCH] Grounding detected — queries: %s, sources: %d, supports: %d",
+                                    queries,
+                                    len(chunks) if chunks else 0,
+                                    len(supports) if supports else 0,
+                                )
+
                             # Turn complete — flush transcripts
                             if sc and sc.turn_complete:
                                 if user_transcript:
