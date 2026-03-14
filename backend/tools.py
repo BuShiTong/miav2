@@ -107,8 +107,40 @@ class SessionToolState:
 # ── Tool functions ───────────────────────────────────────────────
 
 
+_NEGATION_VALUES = {
+    "none", "no", "nothing", "n/a", "na", "no allergies",
+    "no restrictions", "no dietary restrictions", "not applicable",
+    "clear", "remove",
+}
+
+# Keys where values accumulate (comma-separated list) vs replace
+_LIST_KEYS = {"allergies", "dietary"}
+
+
 def update_user_preference(state: SessionToolState, key: str, value: str) -> dict:
     """Save a user preference (allergies, dietary restrictions, skill level, serving size)."""
+    value = value.strip()
+
+    # Negation: "none", "no allergies", "clear", etc. → remove the preference
+    if value.lower() in _NEGATION_VALUES or value.lower().startswith("no "):
+        removed = state.preferences.pop(key, None)
+        logger.info("Preference cleared: %s (was %s)", key, removed)
+        state.emit({"type": "preference_updated", "key": key, "value": ""})
+        return {
+            "status": "cleared",
+            "key": key,
+            "all_preferences": dict(state.preferences),
+        }
+
+    # Comma splitting + dedup for list-type keys (allergies, dietary)
+    if key in _LIST_KEYS:
+        new_items = [item.strip().lower() for item in value.split(",") if item.strip()]
+        existing = state.preferences.get(key, "")
+        existing_items = [item.strip().lower() for item in existing.split(",") if item.strip()]
+        # Merge and dedup while preserving order
+        merged = list(dict.fromkeys(existing_items + new_items))
+        value = ", ".join(merged)
+
     state.preferences[key] = value
     logger.info("Preference saved: %s = %s", key, value)
     state.emit({"type": "preference_updated", "key": key, "value": value})
