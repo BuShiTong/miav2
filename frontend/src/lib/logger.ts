@@ -66,7 +66,7 @@ function resolveFileLevel(): number {
   } catch {
     // SSR or restricted environment — fall through to default
   }
-  return LEVEL_VALUE.info;
+  return LEVEL_VALUE.debug; // TEMPORARY: capture all events for pre-deployment testing
 }
 
 // Resolve once at module load (avoids per-call overhead)
