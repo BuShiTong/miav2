@@ -364,11 +364,6 @@ function App() {
       // All checks passed — now open WebSocket (triggers Vertex AI session)
       acquireWakeLock();
       connect();
-
-      if (videoEnabled) {
-        pendingCameraRef.current = true;
-      }
-
       setIsActive(true);
     } catch (err) {
       log.error("Failed to start session", err);
@@ -389,7 +384,6 @@ function App() {
     stopPlayback,
     acquireWakeLock,
     releaseWakeLock,
-    videoEnabled,
     accessCode,
     verifyAccessCode,
   ]);
@@ -460,8 +454,6 @@ function App() {
       <div className="page-enter" key="welcome">
         <WelcomeScreen
           onStart={handleStart}
-          videoEnabled={videoEnabled}
-          onVideoEnabledChange={setVideoEnabled}
           isStarting={isStarting}
           accessCode={accessCode}
           onAccessCodeChange={handleAccessCodeChange}

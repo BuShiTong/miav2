@@ -1,7 +1,5 @@
 interface WelcomeScreenProps {
   onStart: () => void;
-  videoEnabled: boolean;
-  onVideoEnabledChange: (enabled: boolean) => void;
   isStarting: boolean;
   accessCode: string;
   onAccessCodeChange: (code: string) => void;
@@ -19,8 +17,6 @@ const features = [
 
 export function WelcomeScreen({
   onStart,
-  videoEnabled,
-  onVideoEnabledChange,
   isStarting,
   accessCode,
   onAccessCodeChange,
@@ -51,37 +47,6 @@ export function WelcomeScreen({
             </li>
           ))}
         </ul>
-
-        {/* Mode toggle */}
-        <div className="welcome-panel">
-          <div
-            className="mode-toggle"
-            role="radiogroup"
-            aria-label="Session mode"
-          >
-            <button
-              role="radio"
-              aria-checked={!videoEnabled}
-              className={`mode-btn focus-ring${!videoEnabled ? " mode-btn--active" : ""}`}
-              onClick={() => onVideoEnabledChange(false)}
-            >
-              Audio Only
-            </button>
-            <button
-              role="radio"
-              aria-checked={videoEnabled}
-              className={`mode-btn focus-ring${videoEnabled ? " mode-btn--active" : ""}`}
-              onClick={() => onVideoEnabledChange(true)}
-            >
-              Audio + Video
-            </button>
-          </div>
-          <p className="mode-description">
-            {videoEnabled
-              ? "Camera watches your cooking and gives visual feedback"
-              : "Voice-only coaching, no camera needed"}
-          </p>
-        </div>
 
         {/* Access Code */}
         <div className="welcome-code-section">
