@@ -86,7 +86,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
         ws.onerror = null;
         ws.close();
         wsRef.current = null;
-        setError("Couldn't reach Mia. Check that the server is running.");
+        setError("Mia's kitchen is closed \u2014 the server isn't responding. Is it running?");
         setStatus("disconnected");
       }
     }, 10_000);
@@ -121,7 +121,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
     ws.onerror = () => {
       clearTimeout(connectTimeout);
       log.error("Connection error");
-      setError("Couldn't reach Mia. Check your internet connection.");
+      setError("Someone tripped over the internet cable. Check your Wi-Fi?");
       wsRef.current = null;
       setStatus("disconnected");
     };
@@ -149,7 +149,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
 
           if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
             log.error(`Max reconnect attempts reached (${MAX_RECONNECT_ATTEMPTS})`);
-            setError("Connection lost. Click Stop then Start to try again.");
+            setError("The connection gremlins won this round. Tap Stop, then Start to try again.");
             wsRef.current = null;
             setStatus("disconnected");
             return;

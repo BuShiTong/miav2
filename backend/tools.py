@@ -320,7 +320,7 @@ async def search_web(state: SessionToolState, query: str, search_client: genai.C
     except Exception as e:
         logger.exception("Search failed: %s", query)
         state.emit({"type": "search_complete"})
-        return {"answer": f"I couldn't look that up right now, but from what I know: (search error: {e})"}
+        return {"answer": "Someone spilled coffee on the search servers. Here's what I know from memory:"}
 
 
 # ── Tool dispatch ────────────────────────────────────────────────

@@ -294,7 +294,7 @@ function App() {
 
     // Browser feature detection
     if (!window.AudioContext || !window.AudioWorkletNode || !navigator.mediaDevices?.getUserMedia) {
-      setMicError("Voice features require Chrome or Edge. Please switch browsers.");
+      setMicError("Voice chat needs Chrome or Edge \u2014 this browser can't handle the heat!");
       isStartingRef.current = false;
       return;
     }
@@ -331,8 +331,8 @@ function App() {
     } catch (err) {
       setCodeError(
         err instanceof DOMException && err.name === 'AbortError'
-          ? 'Verification timed out. Is the server running?'
-          : 'Could not reach the server. Check your connection.',
+          ? 'The server hamster stopped running. Is the server up?'
+          : 'The server went offline \u2014 maybe someone watered the servers again?',
       );
       setIsStarting(false);
       isStartingRef.current = false;
@@ -346,7 +346,7 @@ function App() {
 
       const micResult = await startMic();
       if (micResult === "denied") {
-        setMicError("Microphone access is needed for voice interaction.");
+        setMicError("My AI ears need your mic permission \u2014 I can't eavesdrop without it!");
         disconnect();
         stopPlayback();
         releaseWakeLock();
