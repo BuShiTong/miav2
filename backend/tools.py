@@ -169,6 +169,16 @@ def _get_remaining(timer: dict) -> int:
     return max(0, int(timer["duration_seconds"] - elapsed))
 
 
+MAX_ACTIVE_TIMERS = 5
+MIN_DURATION = 1
+MAX_DURATION = 28800  # 8 hours
+
+
+def _sanitize_label(label: str) -> str:
+    """Strip special characters from timer labels to prevent prompt injection."""
+    return re.sub(r'[^\w\s-]', '', label)[:50].strip()
+
+
 def manage_timer(
     state: SessionToolState, action: str, label: str = "",
     duration_seconds: int = 0, timer_id: str = "", adjust_seconds: int = 0,
@@ -176,6 +186,10 @@ def manage_timer(
     """Manage cooking timers. Actions: set, cancel, pause, resume, adjust."""
     import time
     action = action.lower()
+
+    # Sanitize label
+    if label:
+        label = _sanitize_label(label)
 
     # Resolve timer_id from label if not provided
     if not timer_id and label and action != "set":
@@ -186,8 +200,10 @@ def manage_timer(
     if action == "set":
         if not label or not label.strip():
             return {"error": "Please specify what this timer is for (e.g., 'pasta', 'rice')"}
-        if duration_seconds <= 0:
-            return {"error": "duration_seconds must be positive"}
+        if duration_seconds < MIN_DURATION or duration_seconds > MAX_DURATION:
+            return {"error": f"Duration must be between {MIN_DURATION}s and {MAX_DURATION}s (8 hours)"}
+        if len(state.active_timers) >= MAX_ACTIVE_TIMERS:
+            return {"error": f"Maximum {MAX_ACTIVE_TIMERS} active timers. Cancel one first."}
         # Dedup: if a timer with the same label was created within the last 10 seconds, skip
         if label:
             for existing_id, existing in state.active_timers.items():

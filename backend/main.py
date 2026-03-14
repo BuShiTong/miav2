@@ -168,11 +168,24 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
             async def upstream():
                 """Browser → Gemini: forward audio, video frames, and timer events."""
+                MAX_MESSAGE_LEN = 10_000     # text message cap (chars)
+                MAX_IMAGE_B64_LEN = 2_800_000  # ~2MB decoded
                 audio_count = 0
                 last_image_time = 0.0
                 try:
                     while True:
                         raw = await websocket.receive_text()
+
+                        # Input size cap (skip audio — it's binary, always small)
+                        if len(raw) > MAX_MESSAGE_LEN:
+                            try:
+                                peek = json.loads(raw[:100] + "}")
+                            except Exception:
+                                peek = {}
+                            if peek.get("type") not in ("audio", "image"):
+                                slog.warning("Dropping oversized message: %d chars", len(raw))
+                                continue
+
                         try:
                             msg = json.loads(raw)
                         except (json.JSONDecodeError, ValueError):
@@ -199,9 +212,13 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             now = time.time()
                             if now - last_image_time < 1.0:
                                 continue
+                            image_data = msg.get("data", "")
+                            if len(image_data) > MAX_IMAGE_B64_LEN:
+                                slog.warning("Dropping oversized image: %d chars", len(image_data))
+                                continue
                             last_image_time = now
                             try:
-                                image_bytes = base64.b64decode(msg.get("data", ""))
+                                image_bytes = base64.b64decode(image_data)
                             except Exception:
                                 continue
                             await session.send_realtime_input(
