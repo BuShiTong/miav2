@@ -31,6 +31,7 @@ from tools import (
     search_web,
     SessionToolState,
     ASYNC_TOOLS,
+    validate_tool_call,
 )
 
 LOG_DIR = Path(__file__).parent / "logs"
@@ -238,6 +239,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 msg_count = 0
                 user_transcript: list[str] = []
                 mia_transcript: list[str] = []
+                last_user_transcription = ""  # latest complete user transcription
+                # Tool call buffering: collect calls for 300ms, then validate + execute
+                pending_tool_calls: list = []
+                tool_buffer_task: asyncio.Task | None = None
+                TOOL_BUFFER_MS = 300  # ms to wait for batched tool calls
                 try:
                     slog.debug("Downstream: starting receive loop")
                     while True:
@@ -252,40 +258,69 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 except RuntimeError:
                                     pass
 
-                            # ── Tool calls ──
+                            # ── Tool calls (buffered + validated) ──
                             if response.tool_call:
                                 fc_list = response.tool_call.function_calls or []
                                 slog.info("Tool call received: %d function(s): %s",
                                           len(fc_list),
                                           [fc.name for fc in fc_list])
+                                pending_tool_calls.extend(fc_list)
 
-                                async def _run_tool(fc):
-                                    t0 = time.monotonic()
-                                    if fc.name in ASYNC_TOOLS:
-                                        result = await search_web(
-                                            tool_state, **(fc.args or {}),
-                                            search_client=client,
+                                async def _flush_tool_buffer():
+                                    """Wait for buffer window, then validate + execute + respond."""
+                                    nonlocal pending_tool_calls, tool_buffer_task
+                                    await asyncio.sleep(TOOL_BUFFER_MS / 1000)
+                                    calls = pending_tool_calls[:]
+                                    pending_tool_calls.clear()
+                                    tool_buffer_task = None
+                                    if not calls:
+                                        return
+
+                                    transcript = last_user_transcription
+                                    func_responses = []
+                                    for fc in calls:
+                                        allowed, reason = validate_tool_call(
+                                            fc.name, fc.args or {}, transcript
                                         )
-                                    else:
-                                        result = await asyncio.to_thread(
-                                            dispatch_tool_call, tool_state, fc.name, fc.args or {}
+                                        if not allowed:
+                                            slog.info("VALIDATION REJECTED: %s(%s) — %s [transcript: %s]",
+                                                      fc.name, fc.args, reason, transcript[:100])
+                                            func_responses.append(types.FunctionResponse(
+                                                id=fc.id,
+                                                name=fc.name,
+                                                response={"status": "skipped", "reason": reason},
+                                            ))
+                                            continue
+
+                                        slog.debug("VALIDATION PASSED: %s(%s) — %s", fc.name, fc.args, reason)
+                                        t0 = time.monotonic()
+                                        if fc.name in ASYNC_TOOLS:
+                                            result = await search_web(
+                                                tool_state, **(fc.args or {}),
+                                                search_client=client,
+                                            )
+                                        else:
+                                            result = await asyncio.to_thread(
+                                                dispatch_tool_call, tool_state, fc.name, fc.args or {}
+                                            )
+                                        elapsed_ms = (time.monotonic() - t0) * 1000
+                                        slog.info("Tool result: %s → %s (%.1fms)", fc.name, result, elapsed_ms)
+                                        func_responses.append(types.FunctionResponse(
+                                            id=fc.id,
+                                            name=fc.name,
+                                            response=result,
+                                        ))
+
+                                    if func_responses:
+                                        await session.send_tool_response(
+                                            function_responses=func_responses,
                                         )
-                                    elapsed_ms = (time.monotonic() - t0) * 1000
-                                    slog.info("Tool result: %s → %s (%.1fms)", fc.name, result, elapsed_ms)
-                                    return types.FunctionResponse(
-                                        id=fc.id,
-                                        name=fc.name,
-                                        response=result,
-                                    )
+                                        slog.info("Tool responses sent (%d)", len(func_responses))
 
-                                responses = await asyncio.gather(
-                                    *[_run_tool(fc) for fc in fc_list]
-                                )
-
-                                await session.send_tool_response(
-                                    function_responses=list(responses),
-                                )
-                                slog.info("Tool responses sent (%d)", len(responses))
+                                # Start or reset the buffer timer
+                                if tool_buffer_task and not tool_buffer_task.done():
+                                    tool_buffer_task.cancel()
+                                tool_buffer_task = asyncio.create_task(_flush_tool_buffer())
                                 continue
 
                             # ── Tool call cancellation ──
@@ -310,9 +345,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                             }
                                         }))
 
-                            # Accumulate transcriptions
+                            # Accumulate transcriptions (eagerly update for validation)
                             if sc and sc.input_transcription and sc.input_transcription.text:
                                 user_transcript.append(sc.input_transcription.text)
+                                last_user_transcription = "".join(user_transcript)
 
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
@@ -320,7 +356,8 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             # Turn complete — flush transcripts
                             if sc and sc.turn_complete:
                                 if user_transcript:
-                                    slog.info("User: %s", "".join(user_transcript))
+                                    last_user_transcription = "".join(user_transcript)
+                                    slog.info("User: %s", last_user_transcription)
                                     user_transcript.clear()
                                 if mia_transcript:
                                     slog.info("Mia: %s", "".join(mia_transcript))
@@ -330,7 +367,8 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             # Interruption (barge-in) — flush transcripts
                             if sc and sc.interrupted:
                                 if user_transcript:
-                                    slog.info("User: %s", "".join(user_transcript))
+                                    last_user_transcription = "".join(user_transcript)
+                                    slog.info("User: %s", last_user_transcription)
                                     user_transcript.clear()
                                 if mia_transcript:
                                     slog.info("Mia: %s (interrupted)", "".join(mia_transcript))

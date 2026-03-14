@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 import uuid
 
 from google import genai
@@ -10,6 +11,71 @@ logger = logging.getLogger("mia.tools")
 
 # Cheap model for search — fast, low cost, no thinking
 SEARCH_MODEL = os.getenv("SEARCH_MODEL", "gemini-2.5-flash-lite")
+
+
+# ── Validation keywords (for transcription-based tool call validation) ────
+
+# Timer actions: keyword must appear in user's speech to allow the action
+TIMER_ACTION_KEYWORDS = {
+    "pause": ["pause", "stop", "hold", "freeze"],
+    "resume": ["resume", "start", "continue", "unpause"],
+    "cancel": ["cancel", "remove", "delete", "clear", "stop"],
+    "adjust": ["add", "more time", "less time", "extend", "extra", "subtract"],
+}
+
+# Number words for serving_size validation
+NUMBER_WORDS = {
+    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+}
+
+
+def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool, str]:
+    """Validate a tool call against the user's transcription.
+
+    Returns (allowed: bool, reason: str).
+    Fail-open: if transcription is empty, allow the call.
+    """
+    if not transcription or not transcription.strip():
+        return True, "fail-open (no transcription)"
+
+    text = transcription.lower()
+
+    if name == "update_user_preference":
+        value = (args.get("value") or "").lower()
+        key = (args.get("key") or "").lower()
+        if not value:
+            return True, "no value to check"
+
+        # For serving_size, also check number words
+        if key == "serving_size":
+            # Check digit
+            if re.search(r'\b' + re.escape(value) + r'\b', text):
+                return True, f"value '{value}' found in transcription"
+            # Check number words
+            for word, digit in NUMBER_WORDS.items():
+                if digit == value and re.search(r'\b' + re.escape(word) + r'\b', text):
+                    return True, f"number word '{word}' found for '{value}'"
+            return False, f"serving_size '{value}' not found in transcription"
+
+        # For other preferences, check if value appears
+        if re.search(r'\b' + re.escape(value) + r'\b', text):
+            return True, f"value '{value}' found in transcription"
+        return False, f"value '{value}' not found in transcription"
+
+    if name == "manage_timer":
+        action = (args.get("action") or "").lower()
+        keywords = TIMER_ACTION_KEYWORDS.get(action)
+        if keywords is None:
+            # set, status, or unknown — always allowed
+            return True, f"action '{action}' always allowed"
+        for kw in keywords:
+            if re.search(r'\b' + re.escape(kw) + r'\b', text):
+                return True, f"keyword '{kw}' found for action '{action}'"
+        return False, f"no keyword for action '{action}' found in transcription"
+
+    # search_web and anything else: always allowed
+    return True, "tool always allowed"
 
 
 # ── Per-session state ────────────────────────────────────────────
