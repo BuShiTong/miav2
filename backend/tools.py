@@ -112,7 +112,12 @@ def update_user_preference(state: SessionToolState, key: str, value: str) -> dic
     state.preferences[key] = value
     logger.info("Preference saved: %s = %s", key, value)
     state.emit({"type": "preference_updated", "key": key, "value": value})
-    return {"status": "saved", "key": key, "value": value}
+    return {
+        "status": "saved",
+        "key": key,
+        "value": value,
+        "all_preferences": dict(state.preferences),
+    }
 
 
 def _find_timer_by_label(state: SessionToolState, label: str) -> tuple[str, dict] | None:

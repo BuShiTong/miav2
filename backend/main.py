@@ -314,6 +314,27 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         )
                                         slog.info("Tool responses sent (%d)", len(func_responses))
 
+                                    # Safety embedding: inject preference context after preference updates
+                                    # so allergies/dietary info survives long conversations
+                                    had_pref_update = any(
+                                        fc.name == "update_user_preference" for fc in calls
+                                    )
+                                    if had_pref_update and tool_state.preferences:
+                                        pref_parts = "; ".join(
+                                            f"{k}: {v}" for k, v in tool_state.preferences.items()
+                                        )
+                                        await session.send_client_content(
+                                            turns=types.Content(
+                                                role="user",
+                                                parts=[types.Part(text=(
+                                                    f"[User preferences — {pref_parts}. "
+                                                    "Always respect these, especially allergies.]"
+                                                ))],
+                                            ),
+                                            turn_complete=False,
+                                        )
+                                        slog.info("Preference context injected: %s", pref_parts)
+
                                 # Start or reset the buffer timer
                                 if tool_buffer_task and not tool_buffer_task.done():
                                     tool_buffer_task.cancel()
