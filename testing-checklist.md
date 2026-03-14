@@ -124,6 +124,43 @@ Open latest file in `backend/logs/`:
 - [ ] Tool responses sent in batches (e.g. "Tool responses sent (2)")
 - [ ] No ERROR lines or stack traces
 
+## 23. Preference Safety Embedding (NEW)
+Tests that allergies survive long conversations and can't be "forgotten."
+- [ ] Say: "I'm allergic to nuts" → chip appears, check log for "Preference context injected"
+- [ ] Continue talking for 2+ minutes about other topics
+- [ ] Say: "What can I add to this salad?" → Mia should NOT suggest nuts/peanuts
+- [ ] Check log: `[User preferences — allergies: nuts. Always respect these.]` appears after the tool call
+
+## 24. Preference Negation + Merge (NEW)
+- [ ] Say: "I'm allergic to nuts" → chip shows "nuts"
+- [ ] Say: "I'm also allergic to shellfish" → chip updates to "nuts, shellfish" (merged, not replaced)
+- [ ] Say: "Actually, I have no allergies" → chip disappears entirely
+- [ ] Check log: "Preference cleared: allergies" appears
+- [ ] Say: "I'm vegetarian" → chip appears
+- [ ] Say: "Actually clear my dietary preference" → chip disappears
+
+## 25. Timer Validation Limits (NEW)
+- [ ] Say: "Set a timer for 10 hours" → Mia should refuse (max 8 hours)
+- [ ] Set 5 timers, then ask for a 6th → Mia says max timers reached
+- [ ] Check log: no timer labels contain special characters (sanitized)
+
+## 26. Duration Formatting (NEW)
+- [ ] Say: "Set a 5 minute timer for pasta" → check log: tool result includes `duration_display: "5 minutes"`
+- [ ] Say: "Set a 90 second timer for eggs" → check log: `duration_display: "1 minute 30 seconds"`
+- [ ] Mia should say the time naturally (not "300 seconds")
+
+## 27. Camera Vision (NEW — Video Mode)
+Switch to "Audio + Video" mode for these tests.
+- [ ] Enable camera, show a cutting board or pan → Mia acknowledges what she sees
+- [ ] Show something cooking on a stove → Mia comments on cooking progress
+- [ ] (If possible) show something smoking → does Mia warn about safety?
+- [ ] Don't show anything interesting → Mia stays quiet (doesn't narrate everything)
+
+## 28. Error Messages (NEW)
+- [ ] Stop the backend, try to connect → error message is playful (not generic)
+- [ ] Disconnect Wi-Fi, try to connect → different playful error
+- [ ] Note the exact messages — are they fun and clear about what's wrong?
+
 ---
 
 ## Scorecard
@@ -152,3 +189,9 @@ Open latest file in `backend/logs/`:
 | 20 | Voice Quality | | | |
 | 21 | Goodbye | | | |
 | 22 | Log Verification | | | |
+| 23 | Preference Safety Embedding | | | |
+| 24 | Preference Negation + Merge | | | |
+| 25 | Timer Validation Limits | | | |
+| 26 | Duration Formatting | | | |
+| 27 | Camera Vision | | | |
+| 28 | Error Messages | | | |
