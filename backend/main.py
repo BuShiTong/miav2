@@ -128,6 +128,11 @@ async def frontend_logs():
     return {"ok": True}
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 # ── WebSocket send helper ──────────────────────────────────
 
 WS_SEND_TIMEOUT = 5.0  # seconds — prevents zombie connections from blocking tasks
