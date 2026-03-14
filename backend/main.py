@@ -43,7 +43,8 @@ _resume_handles: dict[str, tuple[str, float]] = {}
 _RESUME_HANDLE_MAX_AGE = 86_400  # 24 hours — Vertex handle validity
 # Saved preferences: keyed by user_id, persisted across Gemini crashes so allergies
 # aren't lost when the connection resets. Cleared on clean disconnect (user clicks Stop).
-_saved_preferences: dict[str, dict[str, str]] = {}
+# Each entry is (prefs_dict, stored_timestamp) for age-based cleanup.
+_saved_preferences: dict[str, tuple[dict[str, str], float]] = {}
 
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
@@ -132,14 +133,18 @@ When multiple tools run, respond once covering everything.
 
 app = FastAPI()
 
+_default_origins = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+]
+_extra_origins = os.getenv("CORS_ORIGINS", "")
+_cors_origins = _default_origins + [o.strip() for o in _extra_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -230,7 +235,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
         saved = _saved_preferences.get(user_id)
         if saved:
             try:
-                tool_state.preferences = dict(saved)
+                tool_state.preferences = dict(saved[0])
                 # Re-emit preference events so frontend chips appear
                 for key, value in tool_state.preferences.items():
                     tool_state.emit({"type": "preference_updated", "key": key, "value": value})
@@ -480,7 +485,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                                     # Persist preferences so they survive Gemini crashes
                                     if tool_state.preferences:
-                                        _saved_preferences[user_id] = dict(tool_state.preferences)
+                                        _saved_preferences[user_id] = (dict(tool_state.preferences), time.time())
                                     else:
                                         _saved_preferences.pop(user_id, None)
 
@@ -504,6 +509,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         del _resume_handles[uid]
                                     if expired:
                                         slog.debug("Pruned %d expired resume handles", len(expired))
+                                    # Prune stale saved preferences too
+                                    expired_prefs = [uid for uid, (_, ts) in _saved_preferences.items()
+                                                     if now - ts > _RESUME_HANDLE_MAX_AGE]
+                                    for uid in expired_prefs:
+                                        del _saved_preferences[uid]
                                     slog.debug("Session resumption handle captured")
 
                             # ── GoAway: connection ending soon ──
