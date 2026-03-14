@@ -413,6 +413,30 @@ function App() {
     resetTimers,
   ]);
 
+  // ── Camera toggle (mid-session) ──────────────────────────────
+
+  const isTogglingCameraRef = useRef(false);
+
+  const handleToggleCamera = useCallback(async () => {
+    if (isTogglingCameraRef.current) return;
+    isTogglingCameraRef.current = true;
+
+    try {
+      if (videoEnabled) {
+        // Turn OFF
+        stopCamera();
+        sendCameraState(false);
+        setVideoEnabled(false);
+      } else {
+        // Turn ON
+        setVideoEnabled(true);
+        pendingCameraRef.current = true;
+      }
+    } finally {
+      isTogglingCameraRef.current = false;
+    }
+  }, [videoEnabled, stopCamera, sendCameraState]);
+
   const visibleTimers = timers.filter((t) => !t.hidden);
 
   // ── Render ─────────────────────────────────────────────────────
@@ -441,6 +465,7 @@ function App() {
           wsError={demo.wsError}
           onStop={() => setDemoMode(false)}
           onFlipCamera={demo.onFlipCamera}
+          onToggleCamera={() => {}}
           micRmsRef={demo.micRmsRef}
           analyserRef={demo.analyserRef}
           isPlaying={demo.isPlaying}
@@ -484,6 +509,7 @@ function App() {
         wsError={visibleWsError}
         onStop={handleStop}
         onFlipCamera={flipCamera}
+        onToggleCamera={handleToggleCamera}
         micRmsRef={micRmsRef}
         analyserRef={analyserRef}
         isPlaying={isPlaying}

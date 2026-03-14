@@ -786,6 +786,38 @@ body {
   transform: scale(0.93);
 }
 
+/* --- Camera Toggle Button --- */
+
+.camera-toggle-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--s-border);
+  background: rgba(28, 42, 33, 0.04);
+  color: var(--s-text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, background-color 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.camera-toggle-btn:hover {
+  background: rgba(28, 42, 33, 0.08);
+  color: var(--s-text);
+}
+
+.camera-toggle-btn:active {
+  transform: scale(0.93);
+}
+
+.camera-toggle-btn--active {
+  border-color: var(--s-accent);
+  background: rgba(184, 92, 56, 0.08);
+  color: var(--s-accent);
+}
+
 /* ===========================
    Welcome Screen — Light Organic Theme
    =========================== */

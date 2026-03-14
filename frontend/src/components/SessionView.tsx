@@ -25,6 +25,7 @@ interface SessionViewProps {
   wsError: string | null;
   onStop: () => void;
   onFlipCamera: () => void;
+  onToggleCamera: () => void;
   micRmsRef: MutableRefObject<number>;
   analyserRef: MutableRefObject<AnalyserNode | null>;
   isPlaying: boolean;
@@ -48,47 +49,48 @@ export function SessionView({
   wsError,
   onStop,
   onFlipCamera,
+  onToggleCamera,
   micRmsRef,
   analyserRef,
   isPlaying,
 }: SessionViewProps) {
   const displayError = micError || cameraError || wsError;
 
-  // Video mode: same layout skeleton as audio, camera card replaces visualizer
-  if (videoEnabled) {
-    return (
-      <div className="session-container session-container--video">
-        {/* Header */}
-        <header className="session-header-new">
-          <span className="session-header-new__title">Mia</span>
-          <StatusBadge
-            buttonState={buttonState}
-            buttonLabel={buttonLabel}
-            voiceRingClass={voiceRingClass}
-            srAnnouncement={srAnnouncement}
-            isConnected={isConnected}
-            isConnecting={isConnecting}
-            isReconnecting={isReconnecting}
-            isSearching={isSearching}
-          />
-        </header>
+  return (
+    <div className={`session-container${videoEnabled ? " session-container--video" : ""}`}>
+      {/* Header */}
+      <header className="session-header-new">
+        <span className="session-header-new__title">Mia</span>
+        <StatusBadge
+          buttonState={buttonState}
+          buttonLabel={buttonLabel}
+          voiceRingClass={voiceRingClass}
+          srAnnouncement={srAnnouncement}
+          isConnected={isConnected}
+          isConnecting={isConnecting}
+          isReconnecting={isReconnecting}
+          isSearching={isSearching}
+        />
+      </header>
 
-        {/* Preferences — subtle row below header */}
-        <OverlayChips preferences={preferences}  />
+      {/* Timers — top priority, right below header */}
+      <TimerOverlay timers={timers} />
 
-        {/* Error / reconnecting banners — document flow, no overlap */}
-        {isReconnecting && (
-          <div className="session-banner-flow session-banner--warning fade-in" role="alert">
-            Connection lost — trying to reconnect...
-          </div>
-        )}
-        {displayError && !isReconnecting && (
-          <div className="session-banner-flow session-banner--error fade-in" role="alert">
-            {displayError}
-          </div>
-        )}
-        {/* Main area — camera card centered */}
-        <div className="session-main">
+      {/* Error / reconnecting banners */}
+      {isReconnecting && (
+        <div className="session-banner-flow session-banner--warning fade-in" role="alert">
+          Connection lost — trying to reconnect...
+        </div>
+      )}
+      {displayError && !isReconnecting && (
+        <div className="session-banner-flow session-banner--error fade-in" role="alert">
+          {displayError}
+        </div>
+      )}
+
+      {/* Main area — visualizer or camera */}
+      <div className="session-main">
+        {videoEnabled ? (
           <div className="camera-card">
             <video
               ref={videoRef}
@@ -98,23 +100,90 @@ export function SessionView({
               aria-label="Camera feed"
             />
           </div>
+        ) : (
+          <div className="audio-viz" data-state={buttonState}>
+            <div className={`audio-viz__ring audio-viz__ring--outer ${voiceRingClass}`} aria-hidden="true" />
+            <div className={`audio-viz__ring audio-viz__ring--inner ${voiceRingClass}`} aria-hidden="true" />
+            <div className={`audio-viz__core audio-viz__core--${buttonState}`}>
+              <AudioVisualizer
+                micRmsRef={micRmsRef}
+                analyserRef={analyserRef}
+                isPlaying={isPlaying}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-          {/* Timers — centered row below camera */}
-          <TimerOverlay timers={timers}  />
-        </div>
+      {/* Hidden video element when camera is off — keeps ref valid for startCamera */}
+      {!videoEnabled && (
+        <video
+          ref={videoRef}
+          muted
+          playsInline
+          style={{ display: "none" }}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Footer — Stop + Flip buttons */}
-        <div className="session-footer">
-          <button
-            onClick={onStop}
-            className="stop-btn-pill focus-ring"
-            aria-label="Stop cooking session"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <rect x="4" y="4" width="16" height="16" rx="2" />
+      {/* Preferences — low priority, above footer */}
+      <OverlayChips preferences={preferences} />
+
+      {/* Footer — camera toggle + stop + flip */}
+      <div className="session-footer">
+        <button
+          onClick={onToggleCamera}
+          className={`camera-toggle-btn focus-ring${videoEnabled ? " camera-toggle-btn--active" : ""}`}
+          aria-label={videoEnabled ? "Turn off camera" : "Turn on camera"}
+        >
+          {videoEnabled ? (
+            // Camera-off icon
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="1" y1="1" x2="23" y2="23" />
+              <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34" />
+              <path d="M15 11a3 3 0 0 0-5.94-.6" />
             </svg>
-            Stop Session
-          </button>
+          ) : (
+            // Camera icon
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          )}
+        </button>
+
+        <button
+          onClick={onStop}
+          className="stop-btn-pill focus-ring"
+          aria-label="Stop cooking session"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+          </svg>
+          Stop Session
+        </button>
+
+        {videoEnabled && (
           <button
             onClick={onFlipCamera}
             className="flip-btn focus-ring"
@@ -137,75 +206,7 @@ export function SessionView({
               <polyline points="8 21 5 18 8 15" />
             </svg>
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Audio-only mode: new centered layout
-  return (
-    <div className="session-container">
-      {/* Header */}
-      <header className="session-header-new">
-        <span className="session-header-new__title">Mia</span>
-        <StatusBadge
-          buttonState={buttonState}
-          buttonLabel={buttonLabel}
-          voiceRingClass={voiceRingClass}
-          srAnnouncement={srAnnouncement}
-          isConnected={isConnected}
-          isConnecting={isConnecting}
-          isReconnecting={isReconnecting}
-          isSearching={isSearching}
-        />
-      </header>
-
-      {/* Preferences — subtle row below header */}
-      <OverlayChips preferences={preferences}  />
-
-      {/* Error / reconnecting banners */}
-      {isReconnecting && (
-        <div className="session-banner-flow session-banner--warning fade-in" role="alert">
-          Connection lost — trying to reconnect...
-        </div>
-      )}
-      {displayError && !isReconnecting && (
-        <div className="session-banner-flow session-banner--error fade-in" role="alert">
-          {displayError}
-        </div>
-      )}
-      {/* Main area — visualizer centered */}
-      <div className="session-main">
-        <div className="audio-viz" data-state={buttonState}>
-          {/* Outer rings */}
-          <div className={`audio-viz__ring audio-viz__ring--outer ${voiceRingClass}`} aria-hidden="true" />
-          <div className={`audio-viz__ring audio-viz__ring--inner ${voiceRingClass}`} aria-hidden="true" />
-          {/* Core circle with real-time visualizer */}
-          <div className={`audio-viz__core audio-viz__core--${buttonState}`}>
-            <AudioVisualizer
-              micRmsRef={micRmsRef}
-              analyserRef={analyserRef}
-              isPlaying={isPlaying}
-            />
-          </div>
-        </div>
-
-        {/* Timers — centered row below visualizer */}
-        <TimerOverlay timers={timers}  />
-      </div>
-
-      {/* Stop button */}
-      <div className="session-footer">
-        <button
-          onClick={onStop}
-          className="stop-btn-pill focus-ring"
-          aria-label="Stop cooking session"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <rect x="4" y="4" width="16" height="16" rx="2" />
-          </svg>
-          Stop Session
-        </button>
+        )}
       </div>
     </div>
   );
