@@ -63,9 +63,8 @@ export function useAudioPlayback() {
       });
     }
 
-    // Cache-bust worklet URL to prevent stale cached versions
     await Promise.race([
-      audioContext.audioWorklet.addModule("/playback-processor.js?v=" + Date.now()),
+      audioContext.audioWorklet.addModule("/playback-processor.js"),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Audio setup took too long. Try reloading the page.")), 8000),
       ),
