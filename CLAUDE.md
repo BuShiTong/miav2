@@ -21,7 +21,8 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - Health endpoint (`GET /health` — liveness probe)
 - WebSocket ID validation (regex + length cap — prevents log injection)
 - Mid-session camera toggle (on/off anytime, no upfront mode selection — video is input-only)
-- **[DEBUG]** Google Search grounding metadata logging (`[SEARCH]` prefix in session logs — remove before deploy, see Decision #51)
+- Voice-controlled camera (on/off/flip via `camera_control` tool — strict keyword validation)
+- Search source chips (grounding metadata → tappable domain chips, auto-dismiss 8s)
 
 ## Known Limitation
 

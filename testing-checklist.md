@@ -229,7 +229,31 @@ Tests that dead client connections are cleaned up instead of hanging.
 - [ ] (Advanced) Connect with 200-character ID → connection closed with 1008
 
 ## 38. Pre-Deployment Cleanup
-- [ ] Remove `[DEBUG] Google Search grounding detection` block from `main.py` (search for `[SEARCH]`)
+- [ ] No remaining `[DEBUG]` blocks in backend code
+
+## 39. Voice Camera Control
+- [ ] Say "turn on the camera" → camera activates (permission prompt on first use)
+- [ ] Say "flip the camera" → switches between front/back camera
+- [ ] Say "turn off the camera" → camera deactivates, returns to audio visualizer
+- [ ] Say "turn on the camera" when camera already on → no-op, no error
+- [ ] Say "flip the camera" when camera off → no-op
+- [ ] Say "can you see my pan?" → does NOT trigger camera toggle (strict keyword validation)
+- [ ] Check backend log: camera_control tool call appears with validation result
+- [ ] Deny camera permission after voice command → error banner shown, stays audio
+
+## 40. Search Source Chips
+- [ ] Ask a factual question (e.g., "what temperature should I cook chicken to?") → source chips appear showing domain names
+- [ ] Source chips appear ABOVE preference chips (prefs stay anchored)
+- [ ] Tap a source chip → opens URL in new browser tab
+- [ ] Wait 8 seconds → source chips auto-dismiss
+- [ ] Ask another factual question → new source chips replace previous ones
+- [ ] Source chips appear correctly in both audio mode and camera mode
+- [ ] Check backend log: `[SEARCH] Emitted N sources to frontend` appears
+
+## 41. Chip Animation Speed
+- [ ] Set a preference (say "I'm allergic to nuts") → chip appears near-instantly (no sluggish slide-in)
+- [ ] Set a timer → timer chip appears without noticeable delay
+- [ ] Compare to previous behavior: chips should feel snappy, not slow
 
 ---
 
@@ -275,3 +299,6 @@ Tests that dead client connections are cleaned up instead of hanging.
 | 36 | Health Endpoint | | | |
 | 37 | WebSocket ID Validation | | | |
 | 38 | Pre-Deployment Cleanup | | | |
+| 39 | Voice Camera Control | | | |
+| 40 | Search Source Chips | | | |
+| 41 | Chip Animation Speed | | | |
