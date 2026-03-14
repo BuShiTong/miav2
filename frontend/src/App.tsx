@@ -151,8 +151,18 @@ function App() {
     log.info("Processing started (user finished speaking)");
   }, []);
 
+  // Ref-based camera re-sync: handleReady is defined before sendCameraState
+  // is available from useWebSocket, so we use a ref (same pattern as sendTimerExpiredRef).
+  const sendCameraStateRef = useRef<(enabled: boolean) => void>(() => {});
+  const videoEnabledRef = useRef(videoEnabled);
+  videoEnabledRef.current = videoEnabled;
+
   const handleReady = useCallback(() => {
     playConnectSound();
+    // Re-sync camera state with new Gemini session after reconnect
+    if (videoEnabledRef.current) {
+      sendCameraStateRef.current(true);
+    }
   }, []);
 
   // Camera event ref — assigned after handleToggleCamera is defined
@@ -184,6 +194,7 @@ function App() {
 
   const sendTimerExpiredRef = useRef(sendTimerExpired);
   sendTimerExpiredRef.current = sendTimerExpired;
+  sendCameraStateRef.current = sendCameraState;
 
   const handleSpeechStart = useCallback(() => {
     flushAudio();
@@ -453,10 +464,26 @@ function App() {
   handleCameraEventRef.current = (event: CameraEvent) => {
     if (event.action === "on" && !videoEnabled) handleToggleCamera();
     else if (event.action === "off" && videoEnabled) handleToggleCamera();
-    else if (event.action === "flip" && videoEnabled) flipCamera();
+    else if (event.action === "flip" && videoEnabled) {
+      flipCamera().then((r) => {
+        if (r === "denied") {
+          setCameraError("Camera flip failed \u2014 this device might only have one camera.");
+          setVideoEnabled(false);
+        }
+      });
+    }
   };
 
   const visibleTimers = timers.filter((t) => !t.hidden);
+
+  const handleFlipCamera = useCallback(() => {
+    flipCamera().then((r) => {
+      if (r === "denied") {
+        setCameraError("Camera flip failed \u2014 this device might only have one camera.");
+        setVideoEnabled(false);
+      }
+    });
+  }, [flipCamera]);
 
   // ── Render ─────────────────────────────────────────────────────
 
@@ -530,7 +557,7 @@ function App() {
         cameraError={cameraError}
         wsError={visibleWsError}
         onStop={handleStop}
-        onFlipCamera={flipCamera}
+        onFlipCamera={handleFlipCamera}
         onToggleCamera={handleToggleCamera}
         cameraStarting={cameraStarting}
         micRmsRef={micRmsRef}

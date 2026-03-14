@@ -144,7 +144,11 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
         // Revert to previous mode
         facingModeRef.current = newMode === "environment" ? "user" : "environment";
         log.warn("Camera flip failed, reverting");
-        await startCapture(videoElement, facingModeRef.current);
+        const fallback = await startCapture(videoElement, facingModeRef.current);
+        if (fallback === "denied") {
+          log.error("Camera flip fallback also failed");
+          return "denied" as const;
+        }
       } else {
         log.info("Camera flipped to", { facingMode: newMode });
       }

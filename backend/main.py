@@ -548,6 +548,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                             # ── Google Search grounding → emit source chips to frontend ──
                             if sc and sc.grounding_metadata:
+                                tool_state.emit({"type": "search_started"})
                                 gm = sc.grounding_metadata
                                 chunks = getattr(gm, "grounding_chunks", None)
                                 slog.info(
@@ -614,7 +615,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     try:
                                         await session.send_client_content(
                                             turns=types.Content(
-                                                role="system",
+                                                role="user",
                                                 parts=[types.Part(text=(
                                                     f"[State update — {'. '.join(state_parts)}. "
                                                     "Always respect allergies and dietary restrictions.]"
