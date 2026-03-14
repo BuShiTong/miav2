@@ -56,11 +56,11 @@ Share the log file from `backend/logs/` after testing.
 - [ ] Two timers running (pasta + rice). Say: "Pause the rice timer" → correct one pauses
 - [ ] Say: "Add 2 minutes to the pasta timer" → only pasta changes, rice unaffected
 
-## 10. Google Search
-- [ ] Say: "What temperature should I cook chicken to?" → Mia says filler ("let me check on that" or similar), button shows "Searching...", then gives answer (165°F/74°C)
-- [x] Say: "How do I dice an onion?" → Mia answers directly, no search indicator
-- [x] Search result spoken ONCE, not repeated
-- [ ] If search fails → Mia still responds with a fallback, not silence
+## 10. Google Search (Native — transparent, no "Searching..." indicator)
+- [ ] Say: "What temperature should I cook chicken to?" → Mia gives answer with specific number (165°F/74°C). No search_web tool call in logs — search is built-in.
+- [ ] Say: "How do I dice an onion?" → Mia answers directly
+- [ ] Search result spoken ONCE, not repeated
+- [ ] If search fails (e.g. no internet) → Mia still responds from memory, not silence
 
 ## 11. Multiple Tools at Once
 - [ ] Say: "I'm allergic to shellfish and set a 30-second timer for rice" → chip appears AND ONE timer starts (not two), Mia responds ONCE about both

@@ -7,9 +7,11 @@ Real-time voice cooking assistant built on Google's Gemini Live API with native 
 Migration to Vertex AI is **complete**. The app is functional with:
 - Native audio model (`gemini-live-2.5-flash-native-audio`)
 - `enable_affective_dialog` (model reacts to user tone)
+- Native Google Search grounding (built-in, replaces separate flash-lite sub-model)
 - Server-side tool call validation layer (prevents hallucinated preferences and autonomous actions)
 - Tool call buffering (300ms, batches multiple calls)
 - Timer deduplication (prevents duplicate timers)
+- 40ms audio chunks (Vertex best practice, was 100ms)
 - Context window compression (100K trigger, 80K target — prevents token overflow in long sessions)
 - Session resumption (preserves context across ~10 min connection resets, handles valid ~24h)
 - Periodic system instruction updates (compression-proof state: allergies + timers survive trimming)
