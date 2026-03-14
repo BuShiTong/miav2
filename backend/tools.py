@@ -160,6 +160,23 @@ def _find_timer_by_label(state: SessionToolState, label: str) -> tuple[str, dict
     return None
 
 
+def _format_duration(seconds: int) -> str:
+    """Convert seconds to human-readable string: '5 minutes', '2 minutes 30 seconds'."""
+    if seconds < 1:
+        return "0 seconds"
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    parts = []
+    if h:
+        parts.append(f"{h} hour{'s' if h != 1 else ''}")
+    if m:
+        parts.append(f"{m} minute{'s' if m != 1 else ''}")
+    if s and not h:  # skip seconds when hours are involved
+        parts.append(f"{s} second{'s' if s != 1 else ''}")
+    return " ".join(parts) or "0 seconds"
+
+
 def _get_remaining(timer: dict) -> int:
     """Get remaining seconds for a timer (works for both running and paused)."""
     if timer.get("paused"):
@@ -225,7 +242,7 @@ def manage_timer(
             "label": label,
             "duration_seconds": duration_seconds,
         })
-        return {"status": "set", "timer_id": tid, "label": label, "duration_seconds": duration_seconds}
+        return {"status": "set", "timer_id": tid, "label": label, "duration_seconds": duration_seconds, "duration_display": _format_duration(duration_seconds)}
 
     elif action == "cancel":
         if timer_id and timer_id in state.active_timers:
@@ -246,7 +263,7 @@ def manage_timer(
         timer["remaining_when_paused"] = remaining
         logger.info("Timer paused: id=%s remaining=%ds", timer_id, remaining)
         state.emit({"type": "timer_paused", "timer_id": timer_id, "remaining_seconds": remaining})
-        return {"status": "paused", "timer_id": timer_id, "remaining_seconds": remaining}
+        return {"status": "paused", "timer_id": timer_id, "remaining_seconds": remaining, "remaining_display": _format_duration(remaining)}
 
     elif action == "resume":
         timer = state.active_timers.get(timer_id)
@@ -261,7 +278,7 @@ def manage_timer(
         timer["remaining_when_paused"] = 0
         logger.info("Timer resumed: id=%s remaining=%ds", timer_id, remaining)
         state.emit({"type": "timer_resumed", "timer_id": timer_id, "remaining_seconds": remaining})
-        return {"status": "resumed", "timer_id": timer_id, "remaining_seconds": remaining}
+        return {"status": "resumed", "timer_id": timer_id, "remaining_seconds": remaining, "remaining_display": _format_duration(remaining)}
 
     elif action == "adjust":
         timer = state.active_timers.get(timer_id)
@@ -276,7 +293,7 @@ def manage_timer(
             timer["duration_seconds"] = new_remaining
         logger.info("Timer adjusted: id=%s by=%+ds new_remaining=%ds", timer_id, adjust_seconds, new_remaining)
         state.emit({"type": "timer_adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining})
-        return {"status": "adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining}
+        return {"status": "adjusted", "timer_id": timer_id, "new_remaining_seconds": new_remaining, "remaining_display": _format_duration(new_remaining)}
 
     return {"error": f"Unknown action: {action}"}
 
