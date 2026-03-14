@@ -7,9 +7,15 @@ export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "re
 
 // --- Custom event types from backend ---
 
+export interface SearchSource {
+  title: string;
+  domain: string;
+  url: string;
+}
+
 export type SearchEvent =
   | { type: "search_started" }
-  | { type: "search_complete" };
+  | { type: "search_complete"; sources?: SearchSource[] };
 
 export interface PreferenceEvent {
   type: "preference_updated";

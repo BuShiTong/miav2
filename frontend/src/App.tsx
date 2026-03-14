@@ -126,7 +126,7 @@ function App() {
     [handleTimerEvent],
   );
 
-  const { isSearching, handleSearchEvent, resetSearch } =
+  const { isSearching, sources, handleSearchEvent, resetSearch } =
     useSearch();
 
   const { preferences, handlePreferenceEvent, resetPreferences } =
@@ -479,6 +479,7 @@ function App() {
           isSearching={demo.isSearching}
           timers={demo.timers}
           preferences={demo.preferences}
+          sources={[]}
           micError={demo.micError}
           cameraError={demo.cameraError}
           wsError={demo.wsError}
@@ -524,6 +525,7 @@ function App() {
         isSearching={isSearching}
         timers={visibleTimers}
         preferences={preferences}
+        sources={sources}
         micError={micError}
         cameraError={cameraError}
         wsError={visibleWsError}
