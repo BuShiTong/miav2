@@ -197,6 +197,17 @@ Tests that dead client connections are cleaned up instead of hanging.
 - [ ] After timeout: backend session ends cleanly (no hanging processes)
 - [ ] Rapid audio playback (continuous Mia speaking) → no timeout warnings (healthy sends complete well under 5s)
 
+## 34. Health Endpoint (NEW)
+- [ ] `curl http://localhost:8000/health` → returns `{"status":"ok"}` with HTTP 200
+- [ ] Health endpoint works even when no WebSocket sessions are active
+- [ ] No log entries created by health check hits
+
+## 35. WebSocket ID Validation (NEW)
+- [ ] Normal session connects fine (frontend-generated IDs pass validation)
+- [ ] Check backend log: no "Rejected WebSocket" warnings during normal use
+- [ ] (Advanced) Connect with malicious user_id containing `../` or newlines → connection closed with 1008
+- [ ] (Advanced) Connect with 200-character ID → connection closed with 1008
+
 ---
 
 ## Scorecard
@@ -235,3 +246,6 @@ Tests that dead client connections are cleaned up instead of hanging.
 | 30 | Session Resumption | | | |
 | 31 | System Instruction Updates | | | |
 | 32 | Preference Persistence Across Crashes | | | |
+| 33 | WebSocket Send Timeout | | | |
+| 34 | Health Endpoint | | | |
+| 35 | WebSocket ID Validation | | | |

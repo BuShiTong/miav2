@@ -18,6 +18,8 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - GoAway handling (60s warning before connection terminates)
 - Preference persistence across crashes (allergies survive Gemini reconnects, cleared on clean Stop)
 - Resume token cleanup (24h expiry, prevents unbounded memory growth)
+- Health endpoint (`GET /health` — liveness probe)
+- WebSocket ID validation (regex + length cap — prevents log injection)
 
 ## Known Limitation
 
