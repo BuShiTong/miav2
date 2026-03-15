@@ -6,10 +6,10 @@ const log = createLogger("AudioCapture");
 // Speech detection constants
 // Capture worklet sends 640-sample chunks (~40ms at 16kHz), ~25 chunks/sec.
 // Frame timing constants are calibrated for this chunk size.
-const MIN_RMS_THRESHOLD = 0.015; // Absolute floor — calibrated for echoCancellation:false (see problems-solved.md #7)
-const BARGE_IN_MULTIPLIER = 3.0; // Speech must be 3x louder than echo baseline
+const MIN_RMS_THRESHOLD = 0.015; // Absolute floor — adaptive echo baseline handles recalibration with AEC on
+const BARGE_IN_MULTIPLIER = 3.0; // Speech must be 3x louder than echo baseline (increase to 4.0+ if false barge-ins persist)
 const BASELINE_ALPHA = 0.02; // EMA smoothing — preserves ~2s time constant at 25 chunks/sec (was 0.05 at 10/sec)
-const SPEECH_FRAMES_REQUIRED = 3; // ~120ms sustained speech before triggering (3 × 40ms)
+const SPEECH_FRAMES_REQUIRED = 5; // ~200ms sustained speech before triggering (5 × 40ms) — filters brief kitchen noise
 const SILENCE_FRAMES_REQUIRED = 5; // ~200ms silence before allowing re-trigger (5 × 40ms)
 const AI_PLAYING_WINDOW_MS = 500; // AI "playing" if heartbeat/audio arrived within this window
 
