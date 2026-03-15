@@ -336,32 +336,6 @@ body {
   background: rgba(176, 64, 40, 0.08);
 }
 
-/* Search source chips */
-.source-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-  padding: 4px 16px;
-}
-
-.chip--source {
-  color: var(--text-tertiary);
-  opacity: 0.85;
-  text-decoration: none;
-  animation: chipHighlight 0.4s ease both;
-  cursor: pointer;
-}
-
-.session-container .chip--source {
-  color: var(--s-text-dim);
-  opacity: 0.85;
-}
-
-.chip--source:active {
-  opacity: 1;
-}
-
 /* ===========================
    Session Layout
    =========================== */

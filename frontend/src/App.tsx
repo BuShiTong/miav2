@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAudioCapture } from "./hooks/useAudioCapture";
 import { useAudioPlayback } from "./hooks/useAudioPlayback";
 import { usePreferences } from "./hooks/usePreferences";
-import { useSearch } from "./hooks/useSearch";
 import { useTimers, type TimerEvent } from "./hooks/useTimers";
 import { useVideoCapture } from "./hooks/useVideoCapture";
 import { useWakeLock } from "./hooks/useWakeLock";
@@ -120,9 +119,6 @@ function App() {
     [handleTimerEvent],
   );
 
-  const { sources, handleSearchEvent, resetSearch } =
-    useSearch();
-
   const { preferences, handlePreferenceEvent, resetPreferences } =
     usePreferences();
 
@@ -167,7 +163,6 @@ function App() {
     onAudioData: handleAudioData,
     onInterrupted: flushAudio,
     onTimerEvent,
-    onSearchEvent: handleSearchEvent,
     onPreferenceEvent: handlePreferenceEvent,
     onCameraEvent,
     onProcessing: handleProcessing,
@@ -362,7 +357,6 @@ function App() {
     disconnect();
     stopPlayback();
     releaseWakeLock();
-    resetSearch();
     resetPreferences();
     resetTimers();
     closeSoundContext();
@@ -376,7 +370,6 @@ function App() {
     disconnect,
     stopPlayback,
     releaseWakeLock,
-    resetSearch,
     resetPreferences,
     resetTimers,
   ]);
@@ -461,7 +454,6 @@ function App() {
 
         timers={visibleTimers}
         preferences={preferences}
-        sources={sources}
         micError={micError}
         cameraError={cameraError}
         wsError={visibleWsError}

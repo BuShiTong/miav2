@@ -2,11 +2,9 @@ import type { MutableRefObject, RefObject } from "react";
 import type { ButtonState } from "../App";
 import type { Timer } from "../hooks/useTimers";
 import type { Preferences } from "../hooks/usePreferences";
-import type { SearchSource } from "../hooks/useWebSocket";
 import { TimerOverlay } from "./TimerOverlay";
 import { StatusBadge } from "./StatusBadge";
 import { OverlayChips } from "./OverlayChips";
-import { SearchSources } from "./SearchSources";
 import { AudioVisualizer } from "./AudioVisualizer";
 
 interface SessionViewProps {
@@ -21,7 +19,6 @@ interface SessionViewProps {
   isReconnecting: boolean;
   timers: Timer[];
   preferences: Preferences;
-  sources: SearchSource[];
   micError: string | null;
   cameraError: string | null;
   wsError: string | null;
@@ -46,7 +43,6 @@ export function SessionView({
   isReconnecting,
   timers,
   preferences,
-  sources,
   micError,
   cameraError,
   wsError,
@@ -112,9 +108,8 @@ export function SessionView({
             <div className="camera-card__overlay camera-card__overlay--top">
               <TimerOverlay timers={timers} />
             </div>
-            {/* Floating sources + prefs over camera bottom */}
+            {/* Floating prefs over camera bottom */}
             <div className="camera-card__overlay camera-card__overlay--bottom">
-              <SearchSources sources={sources} />
               <OverlayChips preferences={preferences} />
             </div>
           </div>
@@ -144,8 +139,7 @@ export function SessionView({
         />
       )}
 
-      {/* Sources + preferences in normal flow (audio mode only) */}
-      {!videoEnabled && <SearchSources sources={sources} />}
+      {/* Preferences in normal flow (audio mode only) */}
       {!videoEnabled && <OverlayChips preferences={preferences} />}
 
       {/* Footer — camera toggle + stop + flip */}

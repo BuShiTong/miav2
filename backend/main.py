@@ -619,28 +619,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
 
-                            # ── Google Search grounding → emit source chips to frontend ──
-                            if sc and sc.grounding_metadata:
-                                gm = sc.grounding_metadata
-                                chunks = getattr(gm, "grounding_chunks", None)
-                                slog.info(
-                                    "[SEARCH] Grounding detected — sources: %d",
-                                    len(chunks) if chunks else 0,
-                                )
-                                if chunks:
-                                    sources = []
-                                    for chunk in chunks:
-                                        web = getattr(chunk, "web", None)
-                                        if web:
-                                            sources.append({
-                                                "title": getattr(web, "title", "") or "",
-                                                "domain": getattr(web, "domain", "") or "",
-                                                "url": getattr(web, "uri", "") or "",
-                                            })
-                                    if sources:
-                                        tool_state.emit({"type": "search_complete", "sources": sources})
-                                        slog.info("[SEARCH] Emitted %d sources to frontend", len(sources))
-
                             # Turn complete — flush transcripts
                             if sc and sc.turn_complete:
                                 if user_transcript:

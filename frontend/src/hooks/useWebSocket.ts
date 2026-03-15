@@ -7,14 +7,6 @@ export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "re
 
 // --- Custom event types from backend ---
 
-export interface SearchSource {
-  title: string;
-  domain: string;
-  url: string;
-}
-
-export type SearchEvent = { type: "search_complete"; sources?: SearchSource[] };
-
 export interface PreferenceEvent {
   type: "preference_updated";
   key: string;
@@ -30,14 +22,13 @@ interface UseWebSocketOptions {
   onAudioData: (pcmBase64: string) => void;
   onInterrupted: () => void;
   onTimerEvent?: (event: { type: string; [key: string]: unknown }) => void;
-  onSearchEvent?: (event: SearchEvent) => void;
   onPreferenceEvent?: (event: PreferenceEvent) => void;
   onCameraEvent?: (event: CameraEvent) => void;
   onProcessing?: () => void;
   onReady?: () => void;
 }
 
-export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady }: UseWebSocketOptions) {
+export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [error, setError] = useState<string | null>(null);
@@ -205,13 +196,6 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
           return;
         }
 
-        // Search events from backend
-        if (typeof msg.type === "string" && msg.type.startsWith("search_")) {
-          log.info("Search event", { type: msg.type, sourceCount: msg.sources?.length });
-          onSearchEvent?.(msg as SearchEvent);
-          return;
-        }
-
         // Preference events from backend
         if (typeof msg.type === "string" && msg.type.startsWith("preference_")) {
           log.info("Preference event", { type: msg.type, key: msg.key, value: msg.value });
@@ -310,7 +294,7 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
         });
       }
     };
-  }, [onAudioData, onInterrupted, onTimerEvent, onSearchEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady]);
+  }, [onAudioData, onInterrupted, onTimerEvent, onPreferenceEvent, onCameraEvent, onProcessing, onReady]);
   connectRef.current = connect;
 
   const disconnect = useCallback(() => {

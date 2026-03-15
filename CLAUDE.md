@@ -22,7 +22,6 @@ Migration to Vertex AI is **complete**. The app is functional with:
 - WebSocket ID validation (regex + length cap — prevents log injection)
 - Mid-session camera toggle (on/off anytime, no upfront mode selection — video is input-only)
 - Voice-controlled camera (on/off/flip via `camera_control` tool — strict keyword validation)
-- Search source chips (grounding metadata → tappable domain chips, auto-dismiss 8s)
 
 ## Known Limitation
 
