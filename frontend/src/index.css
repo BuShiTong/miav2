@@ -311,6 +311,13 @@ body {
   animation: chipHighlight 0.4s ease both;
 }
 
+.chip--allergy {
+  color: #b54a32;
+  opacity: 0.85;
+  font-weight: 500;
+  animation: chipHighlight 0.4s ease both;
+}
+
 /* Light-theme preference chips in session */
 .session-container .chip {
   background: rgba(28, 42, 33, 0.06);
@@ -321,6 +328,12 @@ body {
 .session-container .chip--preference {
   color: var(--s-text-dim);
   opacity: 0.85;
+}
+
+.session-container .chip--allergy {
+  color: #a03820;
+  border-color: rgba(176, 64, 40, 0.25);
+  background: rgba(176, 64, 40, 0.08);
 }
 
 /* Search source chips */

@@ -79,15 +79,18 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
             return True, "no value to check"
 
         # Negation values: model might say "clear" but user said "remove"
-        # Check (1) removal intent AND (2) key or broad scope mentioned
+        # Check (1) removal intent AND (2) key-related words, food item, or broad scope
         if value in _NEGATION_VALUES or value.startswith("no "):
             has_removal_intent = any(
                 re.search(r'\b' + re.escape(kw) + r'\b', text)
                 for kw in REMOVAL_KEYWORDS
             )
+            # For "avoid" key, user won't say "avoid" — match reason words or broad scope
+            _REASON_WORDS = ["allergy", "allergies", "allergic", "dietary", "diet", "dislike", "preference", "preferences"]
             has_key_or_scope = (
                 re.search(r'\b' + re.escape(key) + r'\b', text)
                 or any(re.search(r'\b' + re.escape(w) + r'\b', text) for w in BROAD_SCOPE_WORDS)
+                or any(re.search(r'\b' + re.escape(w) + r'\b', text) for w in _REASON_WORDS)
             )
             if has_removal_intent and has_key_or_scope:
                 return True, f"removal intent + key/scope found for negation '{value}'"
@@ -106,7 +109,7 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
                     return True, f"number word '{word}' found for '{value}'"
             return False, f"serving_size '{value}' not found in transcription"
 
-        # For other preferences, check if value appears
+        # For avoid preferences, check if the food/ingredient value appears
         if re.search(r'\b' + re.escape(value) + r'\b', text):
             return True, f"value '{value}' found in transcription"
         return False, f"value '{value}' not found in transcription"
@@ -161,15 +164,35 @@ _NEGATION_VALUES = {
     "clear", "remove",
 }
 
-# Keys where values accumulate (comma-separated list) vs replace
-_LIST_KEYS = {"allergies", "dietary"}
+def _parse_avoid_items(raw: str) -> list[tuple[str, str]]:
+    """Parse avoid string into list of (value, reason) tuples.
+
+    Format: "peanuts (allergy), vegan (dietary), cilantro (dislike)"
+    """
+    if not raw:
+        return []
+    items = []
+    for part in raw.split(", "):
+        part = part.strip()
+        match = re.match(r'^(.+?)\s*\((\w+)\)$', part)
+        if match:
+            items.append((match.group(1).strip(), match.group(2).strip()))
+        elif part:
+            items.append((part, "dislike"))
+    return items
 
 
-def update_user_preference(state: SessionToolState, key: str, value: str) -> dict:
-    """Save a user preference (allergies, dietary restrictions, or serving size)."""
+def _build_avoid_string(items: list[tuple[str, str]]) -> str:
+    """Build avoid string from list of (value, reason) tuples."""
+    return ", ".join(f"{v} ({r})" for v, r in items)
+
+
+def update_user_preference(state: SessionToolState, key: str, value: str, reason: str = "") -> dict:
+    """Save a food avoidance (with reason) or serving size."""
     value = value.strip()
+    reason = (reason or "dislike").lower()
 
-    # Negation: "none", "no allergies", "clear", etc. → remove the preference
+    # Negation: "none", "clear", etc. → remove the preference
     if value.lower() in _NEGATION_VALUES or value.lower().startswith("no "):
         removed = state.preferences.pop(key, None)
         logger.info("Preference cleared: %s (was %s)", key, removed)
@@ -180,22 +203,43 @@ def update_user_preference(state: SessionToolState, key: str, value: str) -> dic
             "all_preferences": dict(state.preferences),
         }
 
-    # Comma splitting + dedup for list-type keys (allergies, dietary)
-    if key in _LIST_KEYS:
-        new_items = [item.strip().lower() for item in value.split(",") if item.strip()]
-        existing = state.preferences.get(key, "")
-        existing_items = [item.strip().lower() for item in existing.split(",") if item.strip()]
-        # Merge and dedup while preserving order
-        merged = list(dict.fromkeys(existing_items + new_items))
-        value = ", ".join(merged)
+    # Serving size: simple replace
+    if key == "serving_size":
+        state.preferences[key] = value
+        logger.info("Preference saved: %s = %s", key, value)
+        state.emit({"type": "preference_updated", "key": key, "value": value})
+        return {
+            "status": "saved",
+            "key": key,
+            "value": value,
+            "all_preferences": dict(state.preferences),
+        }
 
-    state.preferences[key] = value
-    logger.info("Preference saved: %s = %s", key, value)
-    state.emit({"type": "preference_updated", "key": key, "value": value})
+    # Avoid: accumulate items with reasons, dedup by value
+    existing = _parse_avoid_items(state.preferences.get("avoid", ""))
+    new_items = [item.strip().lower() for item in value.split(",") if item.strip()]
+
+    for new_val in new_items:
+        # Check if item already exists (update reason if different)
+        found = False
+        for i, (ev, er) in enumerate(existing):
+            if ev == new_val:
+                if er != reason:
+                    existing[i] = (new_val, reason)
+                    logger.info("Avoid reason updated: %s %s → %s", new_val, er, reason)
+                found = True
+                break
+        if not found:
+            existing.append((new_val, reason))
+
+    result = _build_avoid_string(existing)
+    state.preferences["avoid"] = result
+    logger.info("Preference saved: avoid = %s", result)
+    state.emit({"type": "preference_updated", "key": "avoid", "value": result})
     return {
         "status": "saved",
-        "key": key,
-        "value": value,
+        "key": "avoid",
+        "value": result,
         "all_preferences": dict(state.preferences),
     }
 
@@ -386,18 +430,23 @@ def get_tool_declarations() -> list[types.Tool]:
             function_declarations=[
                 types.FunctionDeclaration(
                     name="update_user_preference",
-                    description="Save a user preference such as allergies, dietary restrictions, or serving size.",
+                    description="Save what the user wants to avoid eating, or their serving size.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
                             "key": types.Schema(
                                 type="STRING",
-                                description="The preference category",
-                                enum=["allergies", "dietary", "serving_size"],
+                                description="The preference type",
+                                enum=["avoid", "serving_size"],
                             ),
                             "value": types.Schema(
                                 type="STRING",
-                                description="The preference value (e.g. 'nuts', 'vegetarian', '2')",
+                                description="The food or ingredient to avoid (e.g. 'peanuts', 'cilantro'), or serving count (e.g. '2')",
+                            ),
+                            "reason": types.Schema(
+                                type="STRING",
+                                description="Why they avoid it. Use when key is 'avoid'.",
+                                enum=["allergy", "dietary", "dislike"],
                             ),
                         },
                         required=["key", "value"],
