@@ -11,7 +11,6 @@ import { createLogger } from "./lib/logger";
 import { playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/uiSounds";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { SessionView } from "./components/SessionView";
-import { useDemoSession } from "./hooks/useDemoSession";
 import { VOICE_RING, BUTTON_LABEL, SR_ANNOUNCEMENT } from "./lib/sessionConstants";
 
 const log = createLogger("App");
@@ -47,12 +46,7 @@ export type ButtonState =
   | "speaking"
   | "processing";
 
-const isPreviewAvailable = new URLSearchParams(window.location.search).has("preview");
-
 function App() {
-  const [demoMode, setDemoMode] = useState(false);
-  const demo = useDemoSession();
-
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -151,18 +145,8 @@ function App() {
     log.info("Processing started (user finished speaking)");
   }, []);
 
-  // Ref-based camera re-sync: handleReady is defined before sendCameraState
-  // is available from useWebSocket, so we use a ref (same pattern as sendTimerExpiredRef).
-  const sendCameraStateRef = useRef<(enabled: boolean) => void>(() => {});
-  const videoEnabledRef = useRef(videoEnabled);
-  videoEnabledRef.current = videoEnabled;
-
   const handleReady = useCallback(() => {
     playConnectSound();
-    // Re-sync camera state with new Gemini session after reconnect
-    if (videoEnabledRef.current) {
-      sendCameraStateRef.current(true);
-    }
   }, []);
 
   // Camera event ref — assigned after handleToggleCamera is defined
@@ -178,8 +162,6 @@ function App() {
     disconnect,
     sendAudio,
     sendImage,
-    sendCameraState,
-    sendBargeIn,
     sendTimerExpired,
   } = useWebSocket({
     onAudioData: handleAudioData,
@@ -194,12 +176,10 @@ function App() {
 
   const sendTimerExpiredRef = useRef(sendTimerExpired);
   sendTimerExpiredRef.current = sendTimerExpired;
-  sendCameraStateRef.current = sendCameraState;
 
   const handleSpeechStart = useCallback(() => {
     flushAudio();
-    sendBargeIn();
-  }, [flushAudio, sendBargeIn]);
+  }, [flushAudio]);
 
   const { start: startMic, stop: stopMic, micRmsRef } = useAudioCapture({
     onAudioChunk: sendAudio,
@@ -273,12 +253,10 @@ function App() {
         if (result === "denied") {
           setCameraError("No camera access - don't worry, Mia's a great listener even without eyes.");
           setVideoEnabled(false);
-        } else {
-          sendCameraState(true);
         }
       });
     }
-  }, [isActive, startCamera, sendCameraState]);
+  }, [isActive, startCamera]);
 
   // ── Session lifecycle ──────────────────────────────────────────
 
@@ -416,7 +394,6 @@ function App() {
       if (videoEnabled) {
         // Turn OFF
         stopCamera();
-        sendCameraState(false);
         setVideoEnabled(false);
       } else {
         // Turn ON
@@ -426,7 +403,7 @@ function App() {
     } finally {
       isTogglingCameraRef.current = false;
     }
-  }, [videoEnabled, stopCamera, sendCameraState]);
+  }, [videoEnabled, stopCamera]);
 
   // Wire up voice-triggered camera control (ref avoids circular dependency with useWebSocket)
   handleCameraEventRef.current = (event: CameraEvent) => {
@@ -455,41 +432,6 @@ function App() {
 
   // ── Render ─────────────────────────────────────────────────────
 
-  if (demoMode) {
-    return (
-      <div className="page-enter" key="demo">
-        <div className="session-banner-flow session-banner--preview fade-in" role="status">
-          Preview Mode — no backend connected
-        </div>
-        <SessionView
-          videoRef={videoElementRef}
-          videoEnabled={false}
-          buttonState={demo.buttonState}
-          voiceRingClass={demo.voiceRingClass}
-          buttonLabel={demo.buttonLabel}
-          srAnnouncement={demo.srAnnouncement}
-          isConnected={demo.isConnected}
-          isConnecting={demo.isConnecting}
-          isReconnecting={demo.isReconnecting}
-
-          timers={demo.timers}
-          preferences={demo.preferences}
-          sources={[]}
-          micError={demo.micError}
-          cameraError={demo.cameraError}
-          wsError={demo.wsError}
-          onStop={() => setDemoMode(false)}
-          onFlipCamera={demo.onFlipCamera}
-          onToggleCamera={() => {}}
-          cameraStarting={false}
-          micRmsRef={demo.micRmsRef}
-          analyserRef={demo.analyserRef}
-          isPlaying={demo.isPlaying}
-        />
-      </div>
-    );
-  }
-
   if (!isActive) {
     return (
       <div className="page-enter" key="welcome">
@@ -499,7 +441,6 @@ function App() {
           accessCode={accessCode}
           onAccessCodeChange={handleAccessCodeChange}
           codeError={codeError}
-          onPreview={isPreviewAvailable ? () => setDemoMode(true) : undefined}
         />
       </div>
     );

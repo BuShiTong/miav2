@@ -4,7 +4,6 @@ interface WelcomeScreenProps {
   accessCode: string;
   onAccessCodeChange: (code: string) => void;
   codeError: string;
-  onPreview?: () => void;
 }
 
 const features = [
@@ -21,7 +20,6 @@ export function WelcomeScreen({
   accessCode,
   onAccessCodeChange,
   codeError,
-  onPreview,
 }: WelcomeScreenProps) {
   return (
     <div className="welcome-container">
@@ -95,15 +93,6 @@ export function WelcomeScreen({
             {isStarting ? "Connecting..." : "Start Cooking"}
           </button>
           <p className="welcome-hint welcome-hint--subtle">Best with headphones</p>
-          {onPreview && (
-            <button
-              onClick={onPreview}
-              className="start-btn start-btn--preview focus-ring"
-              aria-label="Preview user interface without connecting"
-            >
-              Preview UI
-            </button>
-          )}
         </div>
       </div>
     </div>

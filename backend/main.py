@@ -32,7 +32,7 @@ from tools import (
     dispatch_tool_call,
     SessionToolState,
     validate_tool_call,
-    _sanitize_label,
+    sanitize_label,
 )
 
 # ── Per-user state that survives WebSocket reconnects ──
@@ -373,7 +373,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                         elif msg_type == "timer_expired":
                             timer_id = msg.get("timer_id", "")
-                            label = _sanitize_label(msg.get("label", "timer")) or "timer"
+                            label = sanitize_label(msg.get("label", "timer")) or "timer"
                             slog.info("Timer expired: id=%s label=%s", timer_id, label)
                             tool_state.mark_timer_expired(timer_id)
                             await session.send_client_content(

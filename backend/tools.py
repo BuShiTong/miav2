@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import time
 import uuid
 
 from google.genai import types
@@ -228,7 +229,6 @@ def _get_remaining(timer: dict) -> int:
     """Get remaining seconds for a timer (works for both running and paused)."""
     if timer.get("paused"):
         return timer.get("remaining_when_paused", 0)
-    import time
     elapsed = time.time() - timer["set_at"]
     return max(0, int(timer["duration_seconds"] - elapsed))
 
@@ -238,7 +238,7 @@ MIN_DURATION = 1
 MAX_DURATION = 28800  # 8 hours
 
 
-def _sanitize_label(label: str) -> str:
+def sanitize_label(label: str) -> str:
     """Strip special characters from timer labels to prevent prompt injection."""
     return re.sub(r'[^\w\s-]', '', label)[:50].strip()
 
@@ -248,12 +248,11 @@ def manage_timer(
     duration_seconds: int = 0, timer_id: str = "", adjust_seconds: int = 0,
 ) -> dict:
     """Manage cooking timers. Actions: set, cancel, pause, resume, adjust."""
-    import time
     action = action.lower()
 
     # Sanitize label
     if label:
-        label = _sanitize_label(label)
+        label = sanitize_label(label)
 
     # Resolve timer_id from label if not provided
     if not timer_id and label and action != "set":

@@ -370,20 +370,6 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
     }
   }, []);
 
-  const sendCameraState = useCallback((enabled: boolean) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      log.info("Sending camera state", { enabled });
-      safeSend(JSON.stringify({ type: "camera_state", enabled }));
-    }
-  }, []);
-
-  const sendBargeIn = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      log.info("Sending barge-in signal to backend");
-      safeSend(JSON.stringify({ type: "barge_in" }));
-    }
-  }, []);
-
   const sendTimerExpired = useCallback((timerId: string, label: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       log.info("Sending timer expired", { timerId, label });
@@ -400,8 +386,6 @@ export function useWebSocket({ onAudioData, onInterrupted, onTimerEvent, onSearc
     disconnect,
     sendAudio,
     sendImage,
-    sendCameraState,
-    sendBargeIn,
     sendTimerExpired,
   };
 }

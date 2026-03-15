@@ -42,6 +42,8 @@ Things to do before giving judges access.
 
 ## Final Checks
 - [ ] Verify Google Cloud billing/credits (stay under $100)
-- [ ] Remove any debug logging or test data
+- [ ] Simplify `frontend/src/lib/logger.ts` — remove remote log buffer, sendBeacon, inflight batch recovery; keep console-only logging
+- [ ] Remove `/api/frontend-logs` endpoint from `backend/main.py`
+- [ ] Reset `resolveFileLevel()` default in logger.ts from `debug` back to `info` (line 69 — marked TEMPORARY)
 - [ ] Test access code flow end-to-end
 - [ ] Verify submission deadline (March 16, 2026, 5:00 PM PT)
