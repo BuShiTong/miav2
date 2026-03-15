@@ -760,6 +760,20 @@ body {
   box-shadow: 0 0 8px 2px rgba(164, 184, 169, 0.2);
 }
 
+.voice-ring--badge.voice-ring--connecting {
+  animation: processingPulse 1.5s ease-in-out infinite;
+  border-color: var(--accent);
+  border-top-color: var(--accent);
+  box-shadow: 0 0 8px 2px rgba(184, 92, 56, 0.2);
+}
+
+.voice-ring--badge.voice-ring--reconnecting {
+  animation: processingPulse 1.5s ease-in-out infinite;
+  border-color: var(--warning);
+  border-top-color: var(--warning);
+  box-shadow: 0 0 8px 2px rgba(217, 164, 65, 0.2);
+}
+
 .status-badge__dot {
   width: 8px;
   height: 8px;
