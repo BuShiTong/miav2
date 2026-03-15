@@ -325,6 +325,8 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
             automatic_activity_detection=types.AutomaticActivityDetection(
                 start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
+                prefix_padding_ms=300,      # Require 300ms sustained speech before interrupting (filters kitchen noise bursts <200ms)
+                silence_duration_ms=500,    # Wait 500ms silence before ending user turn (tolerates brief pauses)
             )
         ),
         # Vertex AI-only features (rejected on AI Studio, accepted on Vertex)
