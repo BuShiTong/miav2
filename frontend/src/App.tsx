@@ -251,7 +251,7 @@ function App() {
         }
       });
     }
-  }, [isActive, startCamera]);
+  }, [isActive, videoEnabled, startCamera]);
 
   // ── Session lifecycle ──────────────────────────────────────────
 
