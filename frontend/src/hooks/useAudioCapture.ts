@@ -79,7 +79,7 @@ export function useAudioCapture({
         audio: {
           channelCount: 1,
           sampleRate: 16000,
-          echoCancellation: false,
+          echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
