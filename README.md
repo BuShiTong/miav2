@@ -103,7 +103,7 @@ npm run dev
 
 Go to `https://localhost:5173` in your browser. You will need to accept the self-signed certificate (the app requires HTTPS for microphone access).
 
-Enter the access code when prompted, allow microphone access, and start talking.
+Enter the access code `cookwithmia26` when prompted, allow microphone access, and start talking.
 
 ## Cloud Run Deployment
 
