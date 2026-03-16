@@ -29,3 +29,8 @@ perp.md
 backend/logs/
 back logs.txt
 front logs.txt
+
+# AI tooling / internal docs (keep locally, exclude from repo)
+CLAUDE.md
+pre-deployment-checklist.md
+rules.txt

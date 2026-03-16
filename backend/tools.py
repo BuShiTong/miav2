@@ -29,18 +29,6 @@ REMOVAL_KEYWORDS = [
 # Broad scope words (user wants to clear all preferences, not a specific key)
 BROAD_SCOPE_WORDS = ["all", "everything", "both", "every"]
 
-# Number words for serving_size validation
-NUMBER_WORDS = {
-    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
-    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
-}
-
-# Phrases that imply serving_size = 1
-SINGLE_PERSON_PHRASES = [
-    "just for me", "just me", "only me", "for myself", "by myself",
-    "for one", "for 1", "only one", "myself",
-]
-
 # Dietary label → implied avoidance values
 # When user says "I'm vegetarian", model sends value="meat" — this mapping
 # lets validation accept the implied value if the label appears in transcription.
@@ -128,29 +116,6 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
                 return True, f"removal intent found for negation '{value}' (broad context)"
             return False, f"no removal intent for negation value '{value}'"
 
-        # For serving_size, also check number words, phrases, and ranges
-        if key == "serving_size":
-            # Check digit
-            if re.search(r'\b' + re.escape(value) + r'\b', text):
-                return True, f"value '{value}' found in transcription"
-            # Check number words
-            for word, digit in NUMBER_WORDS.items():
-                if digit == value and re.search(r'\b' + re.escape(word) + r'\b', text):
-                    return True, f"number word '{word}' found for '{value}'"
-            # Check single-person phrases → accept "1"
-            if value == "1" and any(phrase in text for phrase in SINGLE_PERSON_PHRASES):
-                return True, f"single-person phrase found for serving_size '1'"
-            # Check range: if transcript has "X to Y" and value falls within
-            range_match = re.search(r'(\d+)\s+to\s+(\d+)', text)
-            if range_match:
-                lo, hi = int(range_match.group(1)), int(range_match.group(2))
-                try:
-                    if lo <= int(value) <= hi:
-                        return True, f"value '{value}' within stated range {lo}-{hi}"
-                except ValueError:
-                    pass
-            return False, f"serving_size '{value}' not found in transcription"
-
         # For avoid preferences, check if the food/ingredient value appears
         if re.search(r'\b' + re.escape(value) + r'\b', text):
             return True, f"value '{value}' found in transcription"
@@ -235,7 +200,7 @@ def _build_avoid_string(items: list[tuple[str, str]]) -> str:
 
 
 def update_user_preference(state: SessionToolState, key: str, value: str, reason: str = "") -> dict:
-    """Save a food avoidance (with reason) or serving size."""
+    """Save a food avoidance with reason (allergy, dietary, dislike)."""
     value = value.strip()
     reason = (reason or "dislike").lower()
 
@@ -247,18 +212,6 @@ def update_user_preference(state: SessionToolState, key: str, value: str, reason
         return {
             "status": "cleared",
             "key": key,
-            "all_preferences": dict(state.preferences),
-        }
-
-    # Serving size: simple replace
-    if key == "serving_size":
-        state.preferences[key] = value
-        logger.info("Preference saved: %s = %s", key, value)
-        state.emit({"type": "preference_updated", "key": key, "value": value})
-        return {
-            "status": "saved",
-            "key": key,
-            "value": value,
             "all_preferences": dict(state.preferences),
         }
 
@@ -477,22 +430,22 @@ def get_tool_declarations() -> list[types.Tool]:
             function_declarations=[
                 types.FunctionDeclaration(
                     name="update_user_preference",
-                    description="Save what the user wants to avoid eating, or their serving size.",
+                    description="Save what the user wants to avoid eating.",
                     parameters=types.Schema(
                         type="OBJECT",
                         properties={
                             "key": types.Schema(
                                 type="STRING",
                                 description="The preference type",
-                                enum=["avoid", "serving_size"],
+                                enum=["avoid"],
                             ),
                             "value": types.Schema(
                                 type="STRING",
-                                description="The food or ingredient to avoid (e.g. 'peanuts', 'cilantro'), or serving count (e.g. '2')",
+                                description="The food or ingredient to avoid (e.g. 'peanuts', 'cilantro')",
                             ),
                             "reason": types.Schema(
                                 type="STRING",
-                                description="Why they avoid it. Use when key is 'avoid'.",
+                                description="Why they avoid it.",
                                 enum=["allergy", "dietary", "dislike"],
                             ),
                         },
