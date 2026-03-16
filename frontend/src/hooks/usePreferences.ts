@@ -4,11 +4,11 @@ import type { PreferenceEvent } from "./useWebSocket";
 
 const log = createLogger("Preferences");
 
-export type PreferenceKey = "avoid" | "serving_size";
+export type PreferenceKey = "avoid";
 
 export type Preferences = Partial<Record<PreferenceKey, string>>;
 
-const VALID_KEYS = new Set<string>(["avoid", "serving_size"]);
+const VALID_KEYS = new Set<string>(["avoid"]);
 
 /** Values that mean "I have none" — not an actual preference to display. */
 const NEGATION_VALUES = new Set([

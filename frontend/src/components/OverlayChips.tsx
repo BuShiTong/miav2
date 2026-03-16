@@ -47,11 +47,6 @@ export function OverlayChips({ preferences }: OverlayChipsProps) {
           {chipText(item.value, item.reason)}
         </span>
       ))}
-      {preferences.serving_size && (
-        <span className="chip chip--preference">
-          Serves {preferences.serving_size}
-        </span>
-      )}
     </div>
   );
 }
