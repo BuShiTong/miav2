@@ -116,14 +116,6 @@ gcloud run deploy mia-backend --source ./backend --region us-central1 \
 
 For the frontend, build and deploy similarly or serve the static build from any CDN. Set the `CORS_ORIGINS` env var on the backend to match your frontend URL.
 
-## Live App
-
-**https://mia-backend-43575910628.us-central1.run.app**
-
-**Access code: `cookwithmia26`**
-
-First load may take a few seconds due to Cloud Run cold start.
-
 ## How It Works
 
 **Context window compression**: When the conversation hits 100K tokens, the backend compresses it down to ~80K by summarizing older turns. This prevents crashes during long cooking sessions without losing important context like allergies and active timers.
