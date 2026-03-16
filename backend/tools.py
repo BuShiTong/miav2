@@ -45,27 +45,26 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
     """
     # Camera control: always strict, never fail-open.
     # Prevents Gemini from hallucinating camera-on at session start.
+    # Uses component matching: requires "camera" + action word in transcription.
     if name == "camera_control":
         action = (args.get("action") or "").lower()
         if not transcription or not transcription.strip():
             return False, f"camera_control('{action}') requires explicit user request (no transcription)"
         text = transcription.lower()
+        if "camera" not in text:
+            return False, "no 'camera' keyword in transcription"
         if action == "on":
-            keywords = ["turn on camera", "enable camera", "start camera",
-                        "open camera", "turn on the camera", "start the camera"]
+            action_words = ["turn on", "enable", "start", "open", "turning on"]
         elif action == "off":
-            keywords = ["turn off camera", "disable camera", "stop camera",
-                        "close camera", "turn off the camera", "stop the camera"]
+            action_words = ["turn off", "disable", "stop", "close", "turning off"]
         elif action == "flip":
-            keywords = ["flip camera", "switch camera", "front camera",
-                        "back camera", "rear camera", "selfie camera",
-                        "flip the camera", "switch the camera"]
+            action_words = ["flip", "switch", "front", "back", "rear", "selfie"]
         else:
             return False, f"unknown camera action '{action}' — rejected"
-        for kw in keywords:
-            if kw in text:
-                return True, f"keyword '{kw}' found for camera action '{action}'"
-        return False, f"no keyword for camera action '{action}'"
+        for aw in action_words:
+            if aw in text:
+                return True, f"'{aw}' + 'camera' found for action '{action}'"
+        return False, f"no action word for camera action '{action}'"
 
     if not transcription or not transcription.strip():
         return True, "fail-open (no transcription)"
