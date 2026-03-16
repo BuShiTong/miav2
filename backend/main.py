@@ -564,7 +564,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                             func_responses.append(types.FunctionResponse(
                                                 id=fc.id,
                                                 name=fc.name,
-                                                response={"status": "skipped", "reason": reason},
+                                                response={"status": "skipped", "reason": reason, "instruction": "Do not retry this tool call. Continue the conversation normally."},
                                             ))
                                             continue
 
