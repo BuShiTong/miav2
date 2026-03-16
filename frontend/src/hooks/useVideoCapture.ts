@@ -3,6 +3,12 @@ import { createLogger } from "../lib/logger";
 
 const log = createLogger("VideoCapture");
 
+// Vertex AI Live API recommended video settings
+// https://docs.cloud.google.com/vertex-ai/generative-ai/docs/live-api/send-audio-video-streams
+const CAPTURE_RESOLUTION = 768; // px — Vertex AI native resolution
+const CAPTURE_INTERVAL_MS = 1000; // 1 FPS capture for Gemini
+const JPEG_QUALITY = 0.4; // Balance between quality and bandwidth
+
 interface UseVideoCaptureOptions {
   onFrame: (base64Jpeg: string) => void;
 }
@@ -25,9 +31,8 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 768 },
-            height: { ideal: 768 },
-            frameRate: { ideal: 1 },
+            width: { ideal: CAPTURE_RESOLUTION },
+            height: { ideal: CAPTURE_RESOLUTION },
             facingMode: { ideal: facingMode },
           },
         });
@@ -40,8 +45,8 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
         // Create an offscreen canvas for JPEG encoding
         if (!canvasRef.current) {
           const canvas = document.createElement("canvas");
-          canvas.width = 768;
-          canvas.height = 768;
+          canvas.width = CAPTURE_RESOLUTION;
+          canvas.height = CAPTURE_RESOLUTION;
           canvasRef.current = canvas;
         }
 
@@ -62,7 +67,7 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
           const size = Math.min(video.videoWidth, video.videoHeight);
           const sx = (video.videoWidth - size) / 2;
           const sy = (video.videoHeight - size) / 2;
-          ctx.drawImage(video, sx, sy, size, size, 0, 0, 768, 768);
+          ctx.drawImage(video, sx, sy, size, size, 0, 0, CAPTURE_RESOLUTION, CAPTURE_RESOLUTION);
 
           canvasRef.current.toBlob(
             (blob) => {
@@ -84,9 +89,9 @@ export function useVideoCapture({ onFrame }: UseVideoCaptureOptions) {
               reader.readAsDataURL(blob);
             },
             "image/jpeg",
-            0.4
+            JPEG_QUALITY
           );
-        }, 1000);
+        }, CAPTURE_INTERVAL_MS);
 
         return "granted";
       } catch {

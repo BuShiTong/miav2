@@ -312,6 +312,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     config = types.LiveConnectConfig(
         temperature=0.7,
         response_modalities=["AUDIO"],
+        # Video input resolution: lower = fewer tokens/less latency, higher = better detail
+        # https://docs.cloud.google.com/vertex-ai/generative-ai/docs/live-api/send-audio-video-streams
+        media_resolution="MEDIA_RESOLUTION_MEDIUM",
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Aoede")
