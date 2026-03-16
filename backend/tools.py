@@ -35,6 +35,12 @@ NUMBER_WORDS = {
     "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
 }
 
+# Phrases that imply serving_size = 1
+SINGLE_PERSON_PHRASES = [
+    "just for me", "just me", "only me", "for myself", "by myself",
+    "for one", "for 1", "only one", "myself",
+]
+
 # Dietary label → implied avoidance values
 # When user says "I'm vegetarian", model sends value="meat" — this mapping
 # lets validation accept the implied value if the label appears in transcription.
@@ -122,7 +128,7 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
                 return True, f"removal intent found for negation '{value}' (broad context)"
             return False, f"no removal intent for negation value '{value}'"
 
-        # For serving_size, also check number words
+        # For serving_size, also check number words, phrases, and ranges
         if key == "serving_size":
             # Check digit
             if re.search(r'\b' + re.escape(value) + r'\b', text):
@@ -131,6 +137,18 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
             for word, digit in NUMBER_WORDS.items():
                 if digit == value and re.search(r'\b' + re.escape(word) + r'\b', text):
                     return True, f"number word '{word}' found for '{value}'"
+            # Check single-person phrases → accept "1"
+            if value == "1" and any(phrase in text for phrase in SINGLE_PERSON_PHRASES):
+                return True, f"single-person phrase found for serving_size '1'"
+            # Check range: if transcript has "X to Y" and value falls within
+            range_match = re.search(r'(\d+)\s+to\s+(\d+)', text)
+            if range_match:
+                lo, hi = int(range_match.group(1)), int(range_match.group(2))
+                try:
+                    if lo <= int(value) <= hi:
+                        return True, f"value '{value}' within stated range {lo}-{hi}"
+                except ValueError:
+                    pass
             return False, f"serving_size '{value}' not found in transcription"
 
         # For avoid preferences, check if the food/ingredient value appears
