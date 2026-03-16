@@ -65,7 +65,8 @@ export function createLogger(module: string): Logger {
     if (LEVEL_VALUE[level] < MIN_LEVEL) return;
 
     const ts = new Date().toISOString().slice(11, 23);
-    const prefix = `[${ts}] [${level.toUpperCase()}] ${module}:`;
+    const sid = _sessionId ? _sessionId.slice(0, 8) : "?";
+    const prefix = `[${ts}] [${level.toUpperCase()}] ${module} (${sid}):`;
     const method =
       level === "error"
         ? console.error
