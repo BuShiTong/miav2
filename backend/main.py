@@ -458,6 +458,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 pending_tool_calls: list = []
                 tool_buffer_task: asyncio.Task | None = None
                 TOOL_BUFFER_MS = 300  # ms to wait for batched tool calls
+                # Double-talk gate: after tool responses, allow 1 model turn,
+                # suppress extras until user speaks (or 10s safety valve).
+                post_tool_turn_gate = False   # True after we send tool_response
+                block_extra_turns = False     # True after first post-tool turn completes
+                gate_set_time: float = 0.0    # For 10-second safety valve
+                GATE_TIMEOUT = 10.0           # seconds — auto-clear if no duplicate
                 try:
                     slog.debug("Downstream: starting receive loop")
                     MAX_RECEIVE_REENTRIES = 5
@@ -529,6 +535,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                             function_responses=func_responses,
                                         )
                                         slog.info("Tool responses sent (%d)", len(func_responses))
+                                        # Arm double-talk gate: allow 1 model turn, block extras
+                                        post_tool_turn_gate = True
+                                        block_extra_turns = False
 
                                     # Safety embedding: inject preference context after preference updates
                                     # so avoidances survive long conversations
@@ -593,6 +602,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             sc = response.server_content
                             client_dead = False
                             if sc and sc.model_turn and sc.model_turn.parts:
+                                # Double-talk gate: safety valve auto-clear
+                                if block_extra_turns and (time.time() - gate_set_time > GATE_TIMEOUT):
+                                    slog.info("Double-talk gate auto-cleared (%.0fs safety valve)", GATE_TIMEOUT)
+                                    block_extra_turns = False
+                                # Double-talk gate: suppress duplicate audio
+                                if block_extra_turns:
+                                    slog.info("Double-talk gate: suppressed model audio (no user speech since tool response)")
+                                    continue  # Skip forwarding this audio
                                 for part in sc.model_turn.parts:
                                     if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("audio/"):
                                         audio_b64 = base64.b64encode(part.inline_data.data).decode("ascii")
@@ -613,13 +630,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                             # Accumulate transcriptions (eagerly update for validation)
                             if sc and sc.input_transcription and sc.input_transcription.text:
+                                # User spoke — clear double-talk gate
+                                if block_extra_turns:
+                                    slog.debug("Double-talk gate cleared (user spoke)")
+                                    block_extra_turns = False
+                                post_tool_turn_gate = False
                                 user_transcript.append(sc.input_transcription.text)
                                 last_user_transcription = "".join(user_transcript)
 
                             if sc and sc.output_transcription and sc.output_transcription.text:
                                 mia_transcript.append(sc.output_transcription.text)
 
-                            # Turn complete — flush transcripts
+                            # Turn complete — flush transcripts + arm double-talk gate
                             if sc and sc.turn_complete:
                                 if user_transcript:
                                     last_user_transcription = "".join(user_transcript)
@@ -629,8 +651,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     slog.info("Mia: %s", "".join(mia_transcript))
                                     mia_transcript.clear()
                                 slog.debug("Turn complete (msg #%d)", msg_count)
+                                # Double-talk gate: first post-tool turn done → block extras
+                                if post_tool_turn_gate:
+                                    post_tool_turn_gate = False
+                                    block_extra_turns = True
+                                    gate_set_time = time.time()
+                                    slog.debug("Double-talk gate armed (first post-tool turn complete)")
 
-                            # Interruption (barge-in) — flush transcripts
+                            # Interruption (barge-in) — flush transcripts + clear gate
                             if sc and sc.interrupted:
                                 if user_transcript:
                                     last_user_transcription = "".join(user_transcript)
@@ -641,6 +669,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                     mia_transcript.clear()
                                 slog.debug("Interrupted (msg #%d)", msg_count)
                                 await _safe_send(websocket, {"interrupted": True}, slog)
+                                # Clear double-talk gate on interruption
+                                block_extra_turns = False
+                                post_tool_turn_gate = False
 
                             # ── Periodic system instruction update (compression-proof) ──
                             # System instructions survive compression (never discarded).
