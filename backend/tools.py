@@ -35,6 +35,18 @@ NUMBER_WORDS = {
     "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
 }
 
+# Dietary label → implied avoidance values
+# When user says "I'm vegetarian", model sends value="meat" — this mapping
+# lets validation accept the implied value if the label appears in transcription.
+_DIETARY_LABEL_MAP: dict[str, set[str]] = {
+    "vegetarian": {"meat", "poultry", "chicken", "beef", "pork", "lamb"},
+    "vegan": {"meat", "dairy", "eggs", "honey", "animal products", "poultry",
+              "chicken", "beef", "pork", "lamb", "milk", "cheese"},
+    "pescatarian": {"meat", "poultry", "chicken", "beef", "pork", "lamb"},
+    "lactose intolerant": {"dairy", "lactose", "milk", "cheese"},
+    "gluten free": {"gluten", "wheat", "flour"},
+}
+
 
 def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool, str]:
     """Validate a tool call against the user's transcription.
@@ -111,6 +123,11 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
         # For avoid preferences, check if the food/ingredient value appears
         if re.search(r'\b' + re.escape(value) + r'\b', text):
             return True, f"value '{value}' found in transcription"
+        # Dietary label → implied value (e.g., "vegetarian" in speech implies "meat")
+        if args.get("reason", "").lower() == "dietary":
+            for label, implied_values in _DIETARY_LABEL_MAP.items():
+                if re.search(r'\b' + re.escape(label) + r'\b', text) and value in implied_values:
+                    return True, f"dietary label '{label}' implies '{value}'"
         return False, f"value '{value}' not found in transcription"
 
     if name == "manage_timer":
