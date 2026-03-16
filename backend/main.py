@@ -22,6 +22,8 @@ load_dotenv()
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from google import genai
@@ -780,3 +782,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     finally:
         slog.info("Session ended")
         logger.info("Session ended: %s", session_id)
+
+
+# ── Static file serving (Cloud Run: frontend from same container) ──
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIR.is_dir():
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(FRONTEND_DIR / "index.html")
+
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
