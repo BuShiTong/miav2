@@ -13,9 +13,16 @@ function parseAvoidItems(raw: string): { value: string; reason: string }[] {
   }).filter((item) => item.value);
 }
 
-/** Format chip text: allergies/dislikes get "No X", dietary shows as-is. */
+/** Dietary identity labels — show as-is (e.g. "Vegetarian"). Non-labels get "No X". */
+const DIETARY_LABELS = new Set([
+  "vegetarian", "vegan", "pescatarian", "lactose intolerant", "gluten free",
+]);
+
+/** Format chip text: identity labels show as-is, everything else gets "No X". */
 function chipText(value: string, reason: string): string {
-  if (reason === "dietary") return value.charAt(0).toUpperCase() + value.slice(1);
+  if (reason === "dietary" && DIETARY_LABELS.has(value.toLowerCase())) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
   return `No ${value}`;
 }
 
