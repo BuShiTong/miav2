@@ -458,6 +458,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 pending_tool_calls: list = []
                 tool_buffer_task: asyncio.Task | None = None
                 TOOL_BUFFER_MS = 300  # ms to wait for batched tool calls
+                # Retry cap: track rejections per (tool, args) to stop infinite loops
+                # Key: "tool_name:sorted_args", Value: rejection count
+                # Resets when user speaks new words (last_user_transcription changes)
+                rejection_counts: dict[str, int] = {}
+                rejection_transcript: str = ""  # transcript snapshot when counts were recorded
+                MAX_REJECTIONS = 3
                 # Double-talk gate: after tool responses, allow 1 model turn,
                 # suppress extras until user speaks (or 10s safety valve).
                 post_tool_turn_gate = False   # True after we send tool_response
@@ -493,7 +499,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                                 async def _flush_tool_buffer():
                                     """Wait for buffer window, then validate + execute + respond."""
-                                    nonlocal pending_tool_calls, tool_buffer_task
+                                    nonlocal pending_tool_calls, tool_buffer_task, rejection_counts, rejection_transcript
                                     await asyncio.sleep(TOOL_BUFFER_MS / 1000)
                                     calls = pending_tool_calls[:]
                                     pending_tool_calls.clear()
@@ -535,13 +541,32 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         unique_calls = unique_calls[:MAX_TOOL_CALLS_PER_BATCH]
                                     calls = unique_calls
 
+                                    # Reset rejection counts when user says something new
+                                    if transcript != rejection_transcript:
+                                        rejection_counts.clear()
+                                        rejection_transcript = transcript
+
                                     for fc in calls:
+                                        # Retry cap: stop infinite rejection loops
+                                        rkey = f"{fc.name}:{sorted((fc.args or {}).items())}"
+                                        if rejection_counts.get(rkey, 0) >= MAX_REJECTIONS:
+                                            slog.info("RETRY CAP: %s(%s) rejected %d times — hard stop [transcript: %s]",
+                                                      fc.name, fc.args, MAX_REJECTIONS, transcript[:100])
+                                            func_responses.append(types.FunctionResponse(
+                                                id=fc.id,
+                                                name=fc.name,
+                                                response={"status": "error", "reason": f"This action failed validation {MAX_REJECTIONS} times. Do not retry. Tell the user you couldn't complete this action."},
+                                            ))
+                                            continue
+
                                         allowed, reason = validate_tool_call(
                                             fc.name, fc.args or {}, transcript
                                         )
                                         if not allowed:
-                                            slog.info("VALIDATION REJECTED: %s(%s) — %s [transcript: %s]",
-                                                      fc.name, fc.args, reason, transcript[:100])
+                                            rejection_counts[rkey] = rejection_counts.get(rkey, 0) + 1
+                                            slog.info("VALIDATION REJECTED: %s(%s) — %s [transcript: %s] (attempt %d/%d)",
+                                                      fc.name, fc.args, reason, transcript[:100],
+                                                      rejection_counts[rkey], MAX_REJECTIONS)
                                             func_responses.append(types.FunctionResponse(
                                                 id=fc.id,
                                                 name=fc.name,
