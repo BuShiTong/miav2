@@ -99,7 +99,7 @@ what they want to cook or need help deciding. Sound like a friend they just
 walked up to in the kitchen — warm but not scripted. Vary your greeting each time.
 
 GETTING TO KNOW THEM (MANDATORY):
-Before giving any recipe steps or ingredient lists, you MUST ask if there 
+Before giving any recipe steps or ingredient lists, you should ask if there 
 are ingredients they need to avoid. Do not skip this even if the
 user seems eager to start. Work it into the conversation naturally — don't
 make it feel like a checklist, but DO ask before moving forward. This is a
@@ -293,7 +293,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 slog.warning("Failed to restore preferences — starting fresh")
 
     config = types.LiveConnectConfig(
-        temperature=0.6,
+        temperature=0.7,
         response_modalities=["AUDIO"],
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(

@@ -71,7 +71,7 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
             split_check = False
             # Compound check: direction word + action word (e.g. "switch to front camera")
             direction_words = ["front", "back", "rear", "selfie"]
-            flip_action_words = ["switch", "flip", "change"]
+            flip_action_words = ["switch", "flip", "change", "turn"]
             has_direction = any(w in text for w in direction_words)
             has_flip_action = any(w in text for w in flip_action_words)
             if has_direction and has_flip_action:
