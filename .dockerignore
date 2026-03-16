@@ -1,0 +1,11 @@
+node_modules/
+.git/
+backend/logs/
+backend/.env
+*.bat
+.obsidian/
+__pycache__/
+frontend/node_modules/
+.claude/
+*.md
+!README.md
