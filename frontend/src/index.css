@@ -931,9 +931,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
-  padding: clamp(2rem, 5vw, 4rem);
-  overflow-y: auto;
+  height: 100dvh;
+  padding: clamp(1rem, 3dvh, 4rem) clamp(1.5rem, 5vw, 4rem);
+  padding-top: max(clamp(1rem, 3dvh, 4rem), env(safe-area-inset-top));
+  padding-bottom: max(clamp(1rem, 3dvh, 4rem), env(safe-area-inset-bottom));
+  overflow: hidden;
   background: var(--w-bone);
   position: relative;
 }
@@ -952,10 +954,12 @@ body {
 
 .welcome-content {
   max-width: 420px;
+  max-height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: clamp(0.75rem, 2.5dvh, 2rem);
+  justify-content: center;
   position: relative;
   z-index: 2;
 }
@@ -969,24 +973,24 @@ body {
 .welcome-title {
   font-family: var(--w-font-serif);
   font-style: italic;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 3dvh, 2rem);
   font-weight: 400;
   color: var(--w-forest);
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(0.5rem, 1.5dvh, 1.5rem);
 }
 
 .welcome-subtitle {
   font-family: var(--w-font-serif);
-  font-size: clamp(2rem, 4.5vw, 2.6rem);
+  font-size: clamp(1.6rem, 4dvh, 2.6rem);
   font-weight: 500;
   line-height: 1.15;
   color: var(--w-forest);
-  margin-bottom: 0.75rem;
+  margin-bottom: clamp(0.25rem, 1dvh, 0.75rem);
 }
 
 .welcome-pitch {
   font-family: var(--w-font-sans);
-  font-size: 0.95rem;
+  font-size: clamp(0.875rem, 1.5dvh, 0.95rem);
   font-weight: 400;
   line-height: 1.6;
   color: var(--w-text-secondary);
@@ -1015,11 +1019,11 @@ body {
 
 .welcome-feature {
   position: relative;
-  padding: 0.9rem 0 0.9rem 1.2rem;
+  padding: clamp(0.4rem, 1.2dvh, 0.9rem) 0 clamp(0.4rem, 1.2dvh, 0.9rem) 1.2rem;
   border-bottom: 1px solid rgba(28, 42, 33, 0.1);
   font-family: var(--w-font-sans);
   font-weight: 500;
-  font-size: 1rem;
+  font-size: clamp(0.875rem, 1.5dvh, 1rem);
   color: var(--w-forest);
   text-align: left;
   opacity: 0;
@@ -1041,8 +1045,8 @@ body {
 /* --- CTA --- */
 
 .start-btn {
-  padding: 1.25rem 2rem;
-  min-height: 48px;
+  padding: clamp(0.75rem, 2dvh, 1.25rem) 2rem;
+  min-height: 44px;
   border-radius: 12px;
   border: none;
   background: var(--w-forest);
@@ -1144,22 +1148,6 @@ body {
   color: #c0392b;
 }
 
-/* --- Small screens: tighten spacing --- */
-
-@media (max-height: 700px) {
-  .welcome-content {
-    gap: 1.25rem;
-  }
-
-  .welcome-title {
-    font-size: 2rem;
-  }
-
-  .welcome-feature {
-    padding: 0.7rem 0 0.7rem 1.2rem;
-    font-size: 0.9rem;
-  }
-}
 
 /* --- Visually Hidden (screen readers only) --- */
 
