@@ -66,16 +66,29 @@ def validate_tool_call(name: str, args: dict, transcription: str) -> tuple[bool,
         if "camera" not in text:
             return False, "no 'camera' keyword in transcription"
         if action == "on":
-            action_words = ["turn on", "enable", "start", "open", "turning on"]
+            action_words = ["turn on", "enable", "start", "open", "turning on", "camera on"]
+            # Natural speech: "turn the camera on" (split phrasing)
+            split_check = ("turn" in text and "on" in text)
         elif action == "off":
-            action_words = ["turn off", "disable", "stop", "close", "turning off"]
+            action_words = ["turn off", "disable", "stop", "close", "turning off", "camera off"]
+            split_check = ("turn" in text and "off" in text)
         elif action == "flip":
-            action_words = ["flip", "switch", "front", "back", "rear", "selfie"]
+            action_words = ["flip", "switch"]
+            split_check = False
+            # Compound check: direction word + action word (e.g. "switch to front camera")
+            direction_words = ["front", "back", "rear", "selfie"]
+            flip_action_words = ["switch", "flip", "change"]
+            has_direction = any(w in text for w in direction_words)
+            has_flip_action = any(w in text for w in flip_action_words)
+            if has_direction and has_flip_action:
+                return True, f"direction + flip action found for '{action}'"
         else:
             return False, f"unknown camera action '{action}' — rejected"
         for aw in action_words:
             if aw in text:
                 return True, f"'{aw}' + 'camera' found for action '{action}'"
+        if split_check:
+            return True, f"'turn' + '{action}' found separately for action '{action}'"
         return False, f"no action word for camera action '{action}'"
 
     if not transcription or not transcription.strip():
