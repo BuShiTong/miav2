@@ -396,7 +396,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                             except Exception:
                                 continue
                             await session.send_realtime_input(
-                                media=types.Blob(
+                                audio=types.Blob(
                                     data=audio_bytes,
                                     mime_type="audio/pcm;rate=16000",
                                 )
