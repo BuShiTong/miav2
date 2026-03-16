@@ -146,7 +146,7 @@ Note the reason so you know how seriously to treat it. Also saves serving size.
 food safety, cooking temperatures, storage times, cross-contamination, substitutions, 
 recipes.
 Use tools when the user asks or when clearly needed.
-When multiple tools run, respond once covering everything.
+When multiple tools run, you must respond exactly once covering everything.
 """
 
 # ── Preference injection helper ─────────────────────────────
