@@ -492,7 +492,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                                 async def _flush_tool_buffer():
                                     """Wait for buffer window, then validate + execute + respond."""
-                                    nonlocal pending_tool_calls, tool_buffer_task, rejection_counts, rejection_transcript
+                                    nonlocal pending_tool_calls, tool_buffer_task, rejection_counts, rejection_transcript, post_tool_turn_gate, block_extra_turns
                                     await asyncio.sleep(TOOL_BUFFER_MS / 1000)
                                     calls = pending_tool_calls[:]
                                     pending_tool_calls.clear()
@@ -533,6 +533,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                             ))
                                         unique_calls = unique_calls[:MAX_TOOL_CALLS_PER_BATCH]
                                     calls = unique_calls
+                                    any_executed = False  # Track if any tool actually ran
 
                                     # Reset rejection counts when user says something new
                                     if transcript != rejection_transcript:
@@ -568,6 +569,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                             continue
 
                                         slog.debug("VALIDATION PASSED: %s(%s) — %s", fc.name, fc.args, reason)
+                                        any_executed = True
                                         t0 = time.monotonic()
                                         result = await asyncio.to_thread(
                                             dispatch_tool_call, tool_state, fc.name, fc.args or {}
@@ -584,10 +586,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                         await session.send_tool_response(
                                             function_responses=func_responses,
                                         )
-                                        slog.info("Tool responses sent (%d)", len(func_responses))
-                                        # Arm double-talk gate: allow 1 model turn, block extras
-                                        post_tool_turn_gate = True
-                                        block_extra_turns = False
+                                        slog.info("Tool responses sent (%d, %d executed)", len(func_responses), int(any_executed))
+                                        # Arm double-talk gate
+                                        if any_executed:
+                                            # Successful tool execution: give model one speaking turn
+                                            post_tool_turn_gate = True
+                                            block_extra_turns = False
+                                        else:
+                                            # All rejected/error: arm gate if not already blocked, but don't unblock
+                                            if not block_extra_turns:
+                                                post_tool_turn_gate = True
 
                                     # Safety embedding: inject preference context after preference updates
                                     # so avoidances survive long conversations
