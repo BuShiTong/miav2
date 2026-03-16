@@ -440,7 +440,7 @@ body {
 
 @keyframes chipAutoFade {
   0%, 80% { opacity: 1; }
-  100% { opacity: 0.3; }
+  100% { opacity: 0.55; }
 }
 
 /* Camera loading overlay */
@@ -729,33 +729,43 @@ body {
   z-index: 1;
 }
 
+/* Badge-specific ring: no transform: scale() — keeps ring flush against badge */
+@keyframes badgePulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
 .voice-ring--badge {
-  inset: -1px;
+  inset: 0;
   border-width: 1.5px;
+  will-change: opacity, box-shadow;
   transition: border-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
 }
 
 .voice-ring--badge.voice-ring--listening {
+  animation: badgePulse 3s ease-in-out infinite;
   box-shadow: 0 0 8px 2px rgba(164, 184, 169, 0.25);
 }
 
 .voice-ring--badge.voice-ring--speaking {
+  animation: none;
   box-shadow: 0 0 12px 3px rgba(184, 92, 56, 0.2);
 }
 
 .voice-ring--badge.voice-ring--processing {
+  animation: badgePulse 1.5s ease-in-out infinite;
   box-shadow: 0 0 8px 2px rgba(164, 184, 169, 0.2);
 }
 
 .voice-ring--badge.voice-ring--connecting {
-  animation: processingPulse 1.5s ease-in-out infinite;
+  animation: badgePulse 1.5s ease-in-out infinite;
   border-color: var(--accent);
   border-top-color: var(--accent);
   box-shadow: 0 0 8px 2px rgba(184, 92, 56, 0.2);
 }
 
 .voice-ring--badge.voice-ring--reconnecting {
-  animation: processingPulse 1.5s ease-in-out infinite;
+  animation: badgePulse 1.5s ease-in-out infinite;
   border-color: var(--warning);
   border-top-color: var(--warning);
   box-shadow: 0 0 8px 2px rgba(217, 164, 65, 0.2);
