@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -189,33 +189,6 @@ async def verify_code(req: VerifyCodeRequest):
     if hmac.compare_digest(req.code.strip(), expected):
         return {"valid": True}
     return {"valid": False, "error": "Wrong code \u2014 Mia peeked through the peephole and didn't recognize you."}
-
-
-@app.post("/api/frontend-logs")
-async def frontend_logs(request: Request):
-    try:
-        body = await request.json()
-        logs = body.get("logs", [])
-        if not logs:
-            return {"ok": True}
-
-        log_file = LOG_DIR / "frontend.log"
-        with open(log_file, "a", encoding="utf-8") as f:
-            for entry in logs:
-                ts = entry.get("ts", "")
-                level = entry.get("level", "INFO")
-                module = entry.get("module", "?")
-                sid = entry.get("sessionId", "?")[:16]
-                msg = entry.get("msg", "")[:500]
-                data = entry.get("data")
-                line = f"{ts} [{level}] {module} (sid={sid}): {msg}"
-                if data is not None:
-                    line += f" | {json.dumps(data, default=str)[:1000]}"
-                f.write(line + "\n")
-        return {"ok": True}
-    except Exception as e:
-        logger.warning("Frontend log write failed: %s", e)
-        return {"ok": False}
 
 
 @app.get("/health")
