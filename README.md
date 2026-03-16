@@ -6,6 +6,14 @@ A real-time voice assistant that talks you through recipes, watches your cooking
 
 Mia is a hands-free cooking companion built on the Gemini Live API with native audio. You talk, she talks back; no typing, no text-to-speech. She remembers your allergies, sets timers, looks at your pan through the camera, and pulls nutrition info from Google Search. Built for the Gemini Live Agent Challenge hackathon.
 
+## Try Mia
+
+The app is live and ready to use. Open it in Chrome on your phone or desktop:
+
+**Access code: `cookwithmia26`**
+
+Allow microphone access when prompted, and start talking.
+
 ## Features
 
 - **Real-time voice conversation**: native audio streaming, not synthesized speech
