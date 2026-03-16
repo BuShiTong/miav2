@@ -373,13 +373,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                     while True:
                         raw = await websocket.receive_text()
 
-                        # Input size cap (skip audio — it's binary, always small)
+                        # Input size cap (image frames are large but allowed through)
                         if len(raw) > MAX_MESSAGE_LEN:
-                            try:
-                                peek = json.loads(raw[:100] + "}")
-                            except Exception:
-                                peek = {}
-                            if peek.get("type") not in ("audio", "image"):
+                            head = raw[:60]
+                            if '"type":"image"' not in head and '"type": "image"' not in head:
                                 slog.warning("Dropping oversized message: %d chars", len(raw))
                                 continue
 
@@ -418,13 +415,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                                 image_bytes = base64.b64decode(image_data)
                             except Exception:
                                 continue
-                            await session.send_realtime_input(
-                                media=types.Blob(
-                                    data=image_bytes,
-                                    mime_type="image/jpeg",
+                            try:
+                                await session.send_realtime_input(
+                                    media=types.Blob(
+                                        data=image_bytes,
+                                        mime_type="image/jpeg",
+                                    )
                                 )
-                            )
-                            slog.debug("Upstream: image frame (%d bytes)", len(image_bytes))
+                                slog.debug("Upstream: image frame (%d bytes)", len(image_bytes))
+                            except Exception:
+                                slog.exception("Failed to send image frame")
 
                         elif msg_type == "timer_expired":
                             timer_id = msg.get("timer_id", "")
@@ -503,6 +503,38 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
 
                                     transcript = last_user_transcription
                                     func_responses = []
+
+                                    # Dedup: remove duplicate tool calls (same name + same args)
+                                    # Prevents hallucination loops from flooding Gemini with responses
+                                    seen: set[tuple] = set()
+                                    unique_calls: list = []
+                                    for fc in calls:
+                                        key = (fc.name, tuple(sorted((fc.args or {}).items())))
+                                        if key in seen:
+                                            slog.info("Tool call dedup: dropped duplicate %s(%s)", fc.name, fc.args)
+                                            func_responses.append(types.FunctionResponse(
+                                                id=fc.id, name=fc.name,
+                                                response={"status": "duplicate", "reason": "already requested in this batch"},
+                                            ))
+                                            continue
+                                        seen.add(key)
+                                        unique_calls.append(fc)
+                                    if len(calls) != len(unique_calls):
+                                        slog.info("Tool call dedup: %d → %d unique calls", len(calls), len(unique_calls))
+
+                                    # Safety cap: limit unique calls per batch
+                                    MAX_TOOL_CALLS_PER_BATCH = 10
+                                    if len(unique_calls) > MAX_TOOL_CALLS_PER_BATCH:
+                                        slog.warning("Tool call cap: %d unique calls, processing first %d",
+                                                     len(unique_calls), MAX_TOOL_CALLS_PER_BATCH)
+                                        for fc in unique_calls[MAX_TOOL_CALLS_PER_BATCH:]:
+                                            func_responses.append(types.FunctionResponse(
+                                                id=fc.id, name=fc.name,
+                                                response={"status": "skipped", "reason": "batch limit reached"},
+                                            ))
+                                        unique_calls = unique_calls[:MAX_TOOL_CALLS_PER_BATCH]
+                                    calls = unique_calls
+
                                     for fc in calls:
                                         allowed, reason = validate_tool_call(
                                             fc.name, fc.args or {}, transcript
