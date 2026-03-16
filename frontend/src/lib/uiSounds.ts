@@ -3,6 +3,25 @@
  * No audio files needed — generates tones programmatically.
  */
 
+// Minimal silent WAV (100ms, 1-ch, 8 kHz, 16-bit PCM) as a data URL.
+// Used to "claim" the media audio channel on mobile so volume buttons
+// control media (Mia's voice) instead of ringtone/notification volume.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0YQAAAAA=";
+
+/** Play a silent clip via <audio> to activate the media volume channel on mobile. */
+export function claimMediaChannel(): void {
+  try {
+    const el = document.createElement("audio");
+    el.src = SILENT_WAV;
+    el.volume = 0.01;
+    el.addEventListener("ended", () => el.remove(), { once: true });
+    el.play().catch(() => {});
+  } catch {
+    // Silent fail — non-critical
+  }
+}
+
 let ctx: AudioContext | null = null;
 
 function getContext(): AudioContext {

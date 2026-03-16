@@ -7,7 +7,7 @@ import { useVideoCapture } from "./hooks/useVideoCapture";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { useWebSocket, type CameraEvent } from "./hooks/useWebSocket";
 import { createLogger } from "./lib/logger";
-import { playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/uiSounds";
+import { claimMediaChannel, playConnectSound, playTimerSetSound, closeSoundContext } from "./lib/uiSounds";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { SessionView } from "./components/SessionView";
 import { VOICE_RING, BUTTON_LABEL, SR_ANNOUNCEMENT } from "./lib/sessionConstants";
@@ -286,6 +286,9 @@ function App() {
     // can't prevent two rapid clicks from both entering this function.
     if (isStartingRef.current) return;
     isStartingRef.current = true;
+
+    // Claim the media audio channel so mobile volume buttons control Mia's voice
+    claimMediaChannel();
 
     // Browser feature detection
     if (!window.AudioContext || !window.AudioWorkletNode || !navigator.mediaDevices?.getUserMedia) {
